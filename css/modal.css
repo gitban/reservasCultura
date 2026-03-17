@@ -63,3 +63,15 @@
     justify-content: space-around;
     align-items: center;
 }
+
+.modalAutorizar{
+    border-radius: 1em;
+}
+
+.modalAutorizar .modal-header{
+    padding: 1em;
+}
+
+.modalAutorizar .btn{
+    margin: 1em;
+}
