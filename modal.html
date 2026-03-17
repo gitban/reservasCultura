@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ejemplo de Modal Moderno</title>
+  <style>
+    /* Estilos generales del cuerpo */
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f2f5;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Estilos del Modal Nativo */
+    dialog {
+      border: none;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    /* Animación de entrada */
+    dialog[open] {
+      animation: aparecer 0.3s ease-out forwards;
+    }
+
+    /* Estilo del fondo oscuro (Backdrop) */
+    dialog::backdrop {
+      background-color: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(5px); /* Desenfoque de fondo */
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header { margin-bottom: 1rem; }
+    .modal-footer { margin-top: 1.5rem; text-align: right; }
+    
+    #closeModal { background-color: #6c757d; }
+  </style>
+</head>
+<body>
+
+  <button id="openModal">Abrir Modal Elegante</button>
+
+  <dialog id="myModal">
+    <div class="modal-header">
+      <h2 style="margin: 0;">¡Listo!</h2>
+    </div>
+    <div class="modal-body">
+      <p>Este modal tiene un fondo con <strong>blur</strong> y una pequeña animación al abrirse.</p>
+      <p>Puedes cerrarlo con el botón o presionando la tecla <strong>Esc</strong>.</p>
+    </div>
+    <div class="modal-footer">
+      <button id="closeModal">Entendido</button>
+    </div>
+  </dialog>
+
+  <script>
+    const modal = document.querySelector("#myModal");
+    const btnOpen = document.querySelector("#openModal");
+    const btnClose = document.querySelector("#closeModal");
+
+    // Abrir modal
+    btnOpen.addEventListener("click", () => modal.showModal());
+
+    // Cerrar modal con el botón
+    btnClose.addEventListener("click", () => modal.close());
+
+    // Cerrar al hacer clic fuera (en el backdrop)
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.close();
+    });
+  </script>
+
+</body>
+</html>

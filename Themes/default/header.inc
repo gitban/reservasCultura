@@ -207,7 +207,12 @@ function print_theme_header($day, $month, $year, $area, $room)
       echo "</td>\n";
       
       echo "<td>\n";
-      echo "<a href=\"report.php?$query_str\">" . get_vocab("report") . "</a>\n";
+      echo "<a href='.\memo.php'>Memos</a>\n";
+      echo "</td>\n";
+      
+      
+      echo "<td>\n";
+      echo "<a href='.\autorizaciones.php'>Autorizaciones</a>\n";
       echo "</td>\n";
       ?>
       

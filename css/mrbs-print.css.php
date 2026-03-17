@@ -56,3 +56,15 @@ foreach ($color_types as $type => $col)
 .ColVis_Button, .dataTables_filter, .dataTables_length, .dataTables_paginate {display: none; }
 
 .ui-resizable-handle {display: none}
+
+#view_entry_nav {
+	display: none;
+}
+
+.certificado {
+	display:block;
+}
+.certificado_nota {
+	margin:3em;
+	
+}

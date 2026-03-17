@@ -1222,5 +1222,16 @@ function export_icalendar(&$res, $keep_private, $export_end=PHP_INT_MAX)
   echo $icalendar;
 }
 
+function convertirSegundos($segundos) {
+    $horas = floor($segundos / 3600);
+    $segundos %= 3600;
+    $minutos = floor($segundos / 60);
+    $segundos %= 60;
+
+    // Formatear los valores en una cadena legible
+    $resultado = sprintf("%02d:%02d:%02d", $horas, $minutos, $segundos);
+
+    return $resultado;
+}
 
 ?>

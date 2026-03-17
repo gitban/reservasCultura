@@ -1,4 +1,5 @@
 <?php
+$auth["type"]="db";
 
 // $Id: config.inc.php 2211 2011-12-24 09:27:00Z cimorrison $
 
@@ -30,7 +31,7 @@
 // A list of valid timezones can be found at http://php.net/manual/timezones.php
 // The following line must be uncommented by removing the '//' at the beginning
 //$timezone = "Europe/London";
-
+$timezone = "America/Argentina/Buenos_Aires";
 
 /*******************
  * Database settings
@@ -42,14 +43,14 @@ $dbsys = "mysql";
 // to use Unix Domain Sockets instead of TCP/IP.
 $db_host = "localhost";
 // Database name:
-$db_database = "mrbs";
+$db_database = "reservas";
 // Database login user name:
-$db_login = "mrbs";
+$db_login = "cye";
 // Database login password:
-$db_password = 'mrbs-password';
+$db_password = '3xt3ns10n';
 // Prefix for table names.  This will allow multiple installations where only
 // one database is available
-$db_tbl_prefix = "mrbs_";
+$db_tbl_prefix = "reservas_";
 // Uncomment this to NOT use PHP persistent (pooled) database connections:
 // $db_nopersist = 1;
 
@@ -57,6 +58,69 @@ $db_tbl_prefix = "mrbs_";
 /* Add lines from systemdefaults.inc.php and areadefaults.inc.php below here
    to change the default configuration. Do _NOT_ modify systemdefaults.inc.php
    or areadefaults.inc.php.  */
+$simple_trailer = TRUE;
+
+/*$typel["C"] = "Cedida";
+$typel["A"] = "Alquilada";
+*/
+$booking_types = array();
+$booking_types[] = "A";
+$booking_types[] = "C";
+$vocab["type.A"] = "Alquilada";
+$vocab["type.C"] = "Cedida";
+
+// Default type for new bookings
+$default_type = "C";
+
+
+// from systemdefaults.inc.php
+$mrbs_admin = "Jerónimo Spadaccioli / Esteban A. Perez";
+$mrbs_admin_email = "lacoqui@uns.edu.ar";
+$mrbs_company_logo = "images/logo_chico.png"; 
+$mrbs_company = 'Secretaría General de Cultura y Extensión Universitaria';   // This line must always be uncommented ($mrbs_company is used in various places)
+
+/*$select_options['entry.responsable'] = array(	'1' => 'Coffee', 
+												'2' => 'Sandwiches',
+												'3' => 'Hot Lunch',
+												'4' => 'asdf as');*/
+
+$select_options['entry.event'] = array(            'as' => 'Asamblea', 
+                                                'ch' => 'Charla', 
+                                                'ci' => 'Cine', 
+                                                'cl' => 'Colación', 
+                                                'co' => 'Congreso', 
+                                                'cu' => 'Curso', 
+                                                'jo' => 'Jornada', 
+                                                'ju' => 'Juicio', 
+                                                'mu' => 'Muestra', 
+                                                'ms' => 'Musicales', 
+                                                'pl' => 'Presentación Libro', 
+                                                'te' => 'Teatro', 
+                                                'vc' => 'Videoconferencia',
+                                                'ot' => '-- Otro --'
+                                                );
+
+
+$select_options['entry.organiza'] = array(      '' => '', 
+                                                'U' => 'UNS', 
+                                                'S' => 'Secretaría', 
+                                                'O' => 'Otro'
+					);
+
+$vocab["entry.organiza"] = "Organiza";
+
+$vocab["entry.event"] = "Evento";
+$vocab["entry.mayordomia"] = "Requerimientos Mayordomía";
+$vocab["entry.audiovisuales"] = "Audiovisuales";
+$vocab["entry.contact"] = "Contacto";
+$vocab["entry.contact_phone"] = "Teléfono";
+$vocab["entry.contact_mail"] = "Correo electrónico";
+$vocab["entry.contact_entity"] = "Entidad";
+
+$mail_settings['admin_lang'] = 'es';
+$disable_automatic_language_changing = 1;
+$default_language_tokens = "es";
+$override_locale = "esp"; 
 
 
 ?>

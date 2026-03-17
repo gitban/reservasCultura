@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $auth["type"]="db";
 
 // $Id: config.inc.php 2211 2011-12-24 09:27:00Z cimorrison $
@@ -45,9 +45,9 @@ $db_host = "localhost";
 // Database name:
 $db_database = "reservas_cye";
 // Database login user name:
-$db_login = "root";
+$db_login = "root";//"cye";
 // Database login password:
-$db_password = 'root';
+$db_password = "";//'claEXTana2486';
 // Prefix for table names.  This will allow multiple installations where only
 // one database is available
 $db_tbl_prefix = "reservas_";
@@ -66,9 +66,10 @@ $typel["A"] = "Alquilada";
 $booking_types = array();
 $booking_types[] = "A";
 $booking_types[] = "C";
+$booking_types[] = "W";
 $vocab["type.A"] = "Alquilada";
 $vocab["type.C"] = "Cedida";
-
+$vocab["type.W"] = "Atencion";
 // Default type for new bookings
 $default_type = "C";
 
@@ -76,6 +77,7 @@ $default_type = "C";
 // from systemdefaults.inc.php
 $mrbs_admin = "Jerónimo Spadaccioli / Esteban A. Perez";
 $mrbs_admin_email = "lacoqui@uns.edu.ar";
+$mrbs_company_logo = "images/logo_chico.png"; 
 $mrbs_company = 'Secretaría General de Cultura y Extensión Universitaria';   // This line must always be uncommented ($mrbs_company is used in various places)
 
 /*$select_options['entry.responsable'] = array(	'1' => 'Coffee', 
@@ -120,6 +122,26 @@ $mail_settings['admin_lang'] = 'es';
 $disable_automatic_language_changing = 1;
 $default_language_tokens = "es";
 $override_locale = "esp"; 
+// ------------------------------ //
+$mail_settings['debug'] = TRUE;
+// Set this to TRUE if you do not want any email sent, whatever the rest of the settings.
+// This is a global setting that will override anything else.   Useful when testing MRBS.
+$mail_settings['disabled'] = FALSE;
+$mail_settings['admin_on_bookings']  = TRUE;
+$mail_settings['booker'] = FALSE;
+$mail_settings['details'] = TRUE;
+$mail_settings['html']  = TRUE;
 
-
+$mail_settings['admin_backend'] = 'smtp';
+$smtp_settings['secure'] = 'ssl';
+$mail_settings['admin_lang'] = 'es';
+$smtp_settings['host'] = 'ssl://smtps.uns.edu.ar';  // SMTP server (smtps.uns.edu.ar)
+$smtp_settings['port'] = 465;           // SMTP port number
+$smtp_settings['auth'] = 'TRUE';        // Whether to use SMTP authentication
+$smtp_settings['username'] = 'lacoqui';       // Username (if using authentication)
+$smtp_settings['password'] = 'atomo22';       // Password (if using authentication)
+$mail_settings['from'] = 'lacoqui@uns.edu.ar';
+$mail_settings['recipients'] = 'lacoqui@uns.edu.ar;reservasalones@uns.edu.ar';
+$mail_settings['debug'] = FALSE;
 ?>
+

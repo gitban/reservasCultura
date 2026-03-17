@@ -1,9 +1,13 @@
+
 <?php
+
 // $Id: edit_entry_handler.php 2338 2012-07-18 10:54:42Z cimorrison $
 
 require "defaultincludes.inc";
 require_once "mrbs_sql.inc";
 require_once "functions_ical.inc";
+require_once "functions_autorizaciones.inc";
+require_once "ValidadorAutorizacion.php";
 
 // NOTE:  the code on this page assumes that array form variables are passed
 // as an array of values, rather than an array indexed by value.   This is
@@ -58,14 +62,14 @@ $formvars = array('create_by'         => 'string',
                   'timetohighlight'   => 'int',
                   'page'              => 'string',
                   'commit'            => 'string',
-                  'ajax'              => 'int');
-                 
+                  'ajax'              => 'int',
+                  'observaciones'     => 'string');
 foreach($formvars as $var => $var_type)
 {
   $$var = get_form_var($var, $var_type);
+  echo ("<br>\n");
 }
 
-// BACK:  we didn't really want to be here - send them to the returl
 if (!empty($back_button))
 {
   if (empty($returl))
@@ -73,7 +77,7 @@ if (!empty($back_button))
     $returl = "index.php";
   }
   header("Location: $returl");
-  exit();
+  exit;
 }
 
 // Get custom form variables
@@ -83,7 +87,7 @@ $custom_fields = array();
 $fields = sql_field_info($tbl_entry);
           
 foreach($fields as $field)
-{
+{ 
   if (!in_array($field['name'], $standard_fields['entry']))
   {
     switch($field['nature'])
@@ -107,7 +111,6 @@ foreach($fields as $field)
     }
   }
 }
-
 
 // Make sure the area corresponds to the room that is being booked
 if (!empty($rooms[0]))
@@ -564,12 +567,32 @@ foreach ($rooms as $room_id)
   }
   $booking['status'] = $status;
   
+  //usado para determinar si se requiere qutorización de horas extras
+  $booking['area_id'] = $area;
+  $autorizacion = new VerificadorAutorizacion($booking);
+  $datos = $autorizacion->determinarNecesidades();
+  $booking['autorizar']=$datos['req_auth'];
+  $booking['estado_autorizacion']=0;
+  // Si se requiere autorizacion insertamos un registro en la tabla reservas_autorizaciones
+  ($booking['autorizar'])? insertar_autorizacion_individual($booking):'';
+  
   $bookings[] = $booking;
 }
 
 $just_check = $ajax && function_exists('json_encode') && !$commit;
 $this_id = (isset($id)) ? $id : NULL;
+ 
+///exit;
+//var_dump($bookings);exit;
 $result = mrbsMakeBookings($bookings, $this_id, $just_check, $skip, $original_room_id, $need_to_send_mail, $edit_type);
+
+if ($result['valid_booking'] && !$just_check) {
+
+  // Iteramos sobre las reservas creadas/editadas para insertar sus autorizaciones
+  foreach ($bookings as $booking) {
+    $booking['area_id']=$area;
+  }
+}
 
 // If we weren't just checking and this was a succesful booking and
 // we were editing an existing booking, then delete the old booking
@@ -691,6 +714,6 @@ if (empty($result['rules_broken'])  &&
 }
 
 echo "</div>\n";
-
 output_trailer();
 ?>
+

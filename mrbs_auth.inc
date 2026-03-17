@@ -224,6 +224,6 @@ function auth_can_edit_user($user, $target)
 //           the room; otherwise FALSE
 function auth_book_admin($user, $room)
 {
-  return (authGetUserLevel($user) >= 2);
+  return (authGetUserLevel($user) >= 3);
 }
 ?>

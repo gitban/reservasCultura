@@ -1,3 +1,10 @@
+<html lang="es">
+<link rel="stylesheet" href="css/modal.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+</html>
+
 <?php
 // $Id: edit_entry.php 2400 2012-09-09 13:56:24Z cimorrison $
 
@@ -51,31 +58,37 @@
 require "defaultincludes.inc";
 require_once "mrbs_sql.inc";
 
-
 $fields = sql_field_info($tbl_entry);
 $custom_fields = array();
 
 // Fill $edit_entry_field_order with not yet specified entries.
-$entry_fields = array('name', 'description', 'start_date', 'end_date', 'areas',
-                      'rooms', 'type', 'confirmation_status', 'privacy_status');
-                      
-foreach ($entry_fields as $field)
-{
-  if (!in_array($field, $edit_entry_field_order))
-  {
+$entry_fields = array(
+  'name',
+  'description',
+  'start_date',
+  'end_date',
+  'areas',
+  'rooms',
+  'type',
+  'confirmation_status',
+  'privacy_status',
+);
+
+foreach ($entry_fields as $field) {
+  if (!in_array($field, $edit_entry_field_order)) {
     $edit_entry_field_order[] = $field;
   }
 }
 
 $custom_fields_map = array();
-foreach ($fields as $field)
-{
+foreach ($fields as $field) {
+  if (in_array($field['name'], array('autorizar', 'estado_autorizacion')))
+    continue;
+
   $key = $field['name'];
-  if (!in_array($key, $standard_fields['entry']))
-  {
+  if (!in_array($key, $standard_fields['entry'])) {
     $custom_fields_map[$key] = $field;
-    if (!in_array($key, $edit_entry_field_order))
-    {
+    if (!in_array($key, $edit_entry_field_order)) {
       $edit_entry_field_order[] = $key;
     }
   }
@@ -92,10 +105,10 @@ foreach ($fields as $field)
 // The $display_none parameter sets the display style of the <select> to "none"
 // The $disabled parameter will disable the input and also generate a hidden input, provided
 // that $display_none is FALSE.  (This prevents multiple inputs of the same name)
-function genSlotSelector($area, $prefix, $first, $last, $time, $display_none=FALSE, $disabled=FALSE)
+function genSlotSelector($area, $prefix, $first, $last, $time, $display_none = FALSE, $disabled = FALSE)
 {
   global $periods;
-  
+
   $html = '';
   // Get the settings for this area.   Note that the variables below are
   // local variables, not globals.
@@ -103,68 +116,65 @@ function genSlotSelector($area, $prefix, $first, $last, $time, $display_none=FAL
   $resolution = ($enable_periods) ? 60 : $area['resolution'];
   // Check that $resolution is positive to avoid an infinite loop below.
   // (Shouldn't be possible, but just in case ...)
-  if (empty($resolution) || ($resolution < 0))
-  {
+  if (empty($resolution) || ($resolution < 0)) {
     fatal_error(FALSE, "Internal error - resolution is NULL or <= 0");
   }
-  
+
   // Get the current hour and minute and convert it into nominal (ie ignoring any
   // DST effects) seconds since the start of the day
   $date = getdate($time);
   $current_t = (($date['hours'] * 60) + $date['minutes']) * 60;
-  
-  if ($enable_periods)
-  {
-    $base = 12*60*60;  // The start of the first period of the day
-  }
-  else
-  {
+
+  if ($enable_periods) {
+    $base = 12 * 60 * 60;  // The start of the first period of the day
+  } else {
     $format = hour_min_format();
   }
   $html .= "<select" .
-           (($display_none) ? " style=\"display: none\"" : "") .
-           // If $display_none or $disabled are set then we'll also disable the select so
-           // that there is only one select passing through the variable to the handler
-           (($display_none || $disabled) ? " disabled=\"disabled\"" : "") .
-           // and if $disabled is set, give the element a class so that the JavaScript
-           // knows to keep it disabled
-           (($disabled) ? " class=\"keep_disabled\"" : "") .
-           " id=\"${prefix}seconds${area['id']}\" name=\"${prefix}seconds\" onChange=\"adjustSlotSelectors(this.form)\">\n";
-  for ($t = $first; $t <= $last; $t = $t + $resolution)
-  {
+    (($display_none) ? " style=\"display: none\"" : "") .
+      // If $display_none or $disabled are set then we'll also disable the select so
+      // that there is only one select passing through the variable to the handler
+    (($display_none || $disabled) ? " disabled=\"disabled\"" : "") .
+      // and if $disabled is set, give the element a class so that the JavaScript
+      // knows to keep it disabled
+    (($disabled) ? " class=\"keep_disabled\"" : "") .
+    " id=\"${prefix}seconds${area['id']}\" name=\"${prefix}seconds\" onChange=\"adjustSlotSelectors(this.form)\">\n";
+  for ($t = $first; $t <= $last; $t = $t + $resolution) {
     // The date used below is completely arbitrary.   All that matters is that it
     // is a day that does not contain a DST boundary.   (We need a real date so that
     // we can use strftime to get an hour and minute formatted according to the locale)
     $timestamp = $t + mktime(0, 0, 0, 1, 1, 2000);
-    $slot_string = ($enable_periods) ? $periods[intval(($t-$base)/60)] : utf8_strftime($format, $timestamp);
+    $slot_string = ($enable_periods) ? $periods[intval(($t - $base) / 60)] : utf8_strftime($format, $timestamp);
     $html .= "<option value=\"$t\"";
     $html .= ($t == $current_t) ? " selected=\"selected\"" : "";
     $html .= ">$slot_string</option>\n";
   }
   $html .= "</select>\n";
   // Add in a hidden input if the select is disabled but displayed
-  if ($disabled && !$display_none)
-  {
+  if ($disabled && !$display_none) {
     $html .= "<input type=\"hidden\" name=\"${prefix}seconds\" value=\"$current_t\">\n";
   }
-  
+
   echo $html;
 }
 
 
-function create_field_entry_name($disabled=FALSE)
+function create_field_entry_name($disabled = FALSE)
 {
   global $name, $select_options, $maxlength, $is_mandatory_field;
-  
+
   echo "<div id=\"div_name\">\n";
   $label_text = get_vocab("namebooker") . ":";
-  if (!empty($select_options['entry.name']))
-  {
-    generate_select($label_text, 'name', $name, $select_options['entry.name'],
-                    $is_mandatory_field['entry.name'], $disabled);
-  }
-  else
-  {
+  if (!empty($select_options['entry.name'])) {
+    generate_select(
+      $label_text,
+      'name',
+      $name,
+      $select_options['entry.name'],
+      $is_mandatory_field['entry.name'],
+      $disabled
+    );
+  } else {
     // 'required' is there to prevent null input (pattern doesn't seem to be triggered until
     // there is sonething there).   [\S]+.* is any non-whitespace character followed by any number
     // of other characters except a line terminator
@@ -175,19 +185,22 @@ function create_field_entry_name($disabled=FALSE)
 }
 
 
-function create_field_entry_description($disabled=FALSE)
+function create_field_entry_description($disabled = FALSE)
 {
   global $description, $select_options, $is_mandatory_field;
-  
+
   echo "<div id=\"div_description\">\n";
   $label_text = get_vocab("fulldescription");
-  if (!empty($select_options['entry.description']))
-  {
-    generate_select($label_text, 'description', $description, $select_options['entry.description'],
-                    $is_mandatory_field['entry.description'], $disabled);
-  }
-  else
-  {
+  if (!empty($select_options['entry.description'])) {
+    generate_select(
+      $label_text,
+      'description',
+      $description,
+      $select_options['entry.description'],
+      $is_mandatory_field['entry.description'],
+      $disabled
+    );
+  } else {
     $attributes = (isset($is_mandatory_field['entry.description']) && $is_mandatory_field['entry.description']) ? "required" : "";
     generate_textarea($label_text, 'description', $description, $disabled, $attributes);
   }
@@ -195,11 +208,11 @@ function create_field_entry_description($disabled=FALSE)
 }
 
 
-function create_field_entry_start_date($disabled=FALSE)
+function create_field_entry_start_date($disabled = FALSE)
 {
   global $start_time, $areas, $area_id, $periods, $default_duration_all_day, $id, $drag;
   global $periods, $is_admin;
-  
+
   echo "<div id=\"div_start_date\">\n";
   echo "<label>" . get_vocab("start") . ":</label>\n";
   $date = getdate($start_time);
@@ -208,17 +221,13 @@ function create_field_entry_start_date($disabled=FALSE)
   // you're allowed to specify the last period as your first period.
   // This is why we don't substract the resolution
 
-  foreach ($areas as $a)
-  {
-    if ($a['enable_periods'])
-    {
+  foreach ($areas as $a) {
+    if ($a['enable_periods']) {
       $a['resolution'] = 60;
-      $first = 12*60*60;
+      $first = 12 * 60 * 60;
       // If we're using periods we just go to the beginning of the last slot
       $last = $first + ((count($periods) - 1) * $a['resolution']);
-    }
-    else
-    {
+    } else {
       $first = (($a['morningstarts'] * 60) + $a['morningstarts_minutes']) * 60;
       $last = (($a['eveningends'] * 60) + $a['eveningends_minutes']) * 60;
       $last = $last + $a['resolution'];
@@ -226,30 +235,29 @@ function create_field_entry_start_date($disabled=FALSE)
     $start_last = ($a['enable_periods']) ? $last : $last - $a['resolution'];
     $display_none = ($a['id'] != $area_id);
     genSlotSelector($a, "start_", $first, $start_last, $start_time, $display_none, $disabled);
-    
+
     echo "<div class=\"group\">\n";
-    echo "<div id=\"ad{$a['id']}\"".($display_none ? " style=\"display: none\" " : "") .">\n";
+    echo "<div id=\"ad{$a['id']}\"" . ($display_none ? " style=\"display: none\" " : "") . ">\n";
     // We don't show the all day checkbox if it's going to result in bookings that
     // contravene the policy - ie if max_duration is enabled and an all day booking
     // would be longer than the maximum duration allowed
     $show_all_day = $is_admin || !$a['max_duration_enabled'] ||
-                    ( ($a['enable_periods'] && ($a['max_duration_periods'] >= count($periods))) ||
-                        (!$a['enable_periods'] && ($a['max_duration_secs'] >= ($last - $first))) );
+      (($a['enable_periods'] && ($a['max_duration_periods'] >= count($periods))) ||
+        (!$a['enable_periods'] && ($a['max_duration_secs'] >= ($last - $first))));
     echo "<input id=\"all_day{$a['id']}\" class=\"all_day checkbox\"" .
-         // If this is an existing booking that we are editing or copying, then we do
-         // not want the default duration applied
-         (($default_duration_all_day && !isset($id) && !$drag) ? " checked=\"checked\"" : "") .
-         " name=\"all_day\" type=\"checkbox\" value=\"yes\" onclick=\"OnAllDayClick(this)\"".
-         ($show_all_day? "" : " style=\"display: none;\" ").
-         // If $display_none or $disabled are set then we'll also disable the select so
-         // that there is only one select passing through the variable to the handler
-         (($display_none || $disabled) ? " disabled=\"disabled\"" : "") .
-         // and if $disabled is set, give the element a class so that the JavaScript
-         // knows to keep it disabled
-         (($disabled) ? " class=\"keep_disabled\"" : "") .
-         ">\n";
-    if($show_all_day)
-    {
+        // If this is an existing booking that we are editing or copying, then we do
+        // not want the default duration applied
+      (($default_duration_all_day && !isset($id) && !$drag) ? " checked=\"checked\"" : "") .
+      " name=\"all_day\" type=\"checkbox\" value=\"yes\" onclick=\"OnAllDayClick(this)\"" .
+      ($show_all_day ? "" : " style=\"display: none;\" ") .
+        // If $display_none or $disabled are set then we'll also disable the select so
+        // that there is only one select passing through the variable to the handler
+      (($display_none || $disabled) ? " disabled=\"disabled\"" : "") .
+        // and if $disabled is set, give the element a class so that the JavaScript
+        // knows to keep it disabled
+      (($disabled) ? " class=\"keep_disabled\"" : "") .
+      ">\n";
+    if ($show_all_day) {
       echo "<label for=\"all_day{$a['id']}\">" . get_vocab("all_day") . "</label>\n";
     }
     echo "</div>\n";
@@ -259,10 +267,10 @@ function create_field_entry_start_date($disabled=FALSE)
 }
 
 
-function create_field_entry_end_date($disabled=FALSE)
+function create_field_entry_end_date($disabled = FALSE)
 {
   global $end_time, $areas, $area_id, $periods, $multiday_allowed;
-  
+
   echo "<div id=\"div_end_date\">\n";
   echo "<label>" . get_vocab("end") . ":</label>\n";
   $date = getdate($end_time);
@@ -273,17 +281,13 @@ function create_field_entry_end_date($disabled=FALSE)
   // If we're using periods the booking model is slightly different,
   // so subtract one period because the "end" period is actually the beginning
   // of the last period booked
-  foreach ($areas as $a)
-  {
-    if ($a['enable_periods'])
-    {
+  foreach ($areas as $a) {
+    if ($a['enable_periods']) {
       $a['resolution'] = 60;
-      $first = 12*60*60;
+      $first = 12 * 60 * 60;
       // If we're using periods we just go to the beginning of the last slot
       $last = $first + ((count($periods) - 1) * $a['resolution']);
-    }
-    else
-    {
+    } else {
       $first = (($a['morningstarts'] * 60) + $a['morningstarts_minutes']) * 60;
       $last = (($a['eveningends'] * 60) + $a['eveningends_minutes']) * 60;
       $last = $last + $a['resolution'];
@@ -297,115 +301,107 @@ function create_field_entry_end_date($disabled=FALSE)
 }
 
 
-function create_field_entry_areas($disabled=FALSE)
+function create_field_entry_areas($disabled = FALSE)
 {
   global $areas, $area_id, $rooms;
-  
+
   echo "<div id=\"div_areas\">\n";
   echo "</div>\n";
   // if there is more than one area then give the option
   // to choose areas.
-  if (count($areas) > 1)
-  { 
-    ?> 
-      <script type="text/javascript">
+  if (count($areas) > 1) {
+    ?>
+    <script type="text/javascript">
       //<![CDATA[
-      
+
       var area = <?php echo $area_id ?>;
-      
-      function changeRooms( formObj )
-      {
-        areasObj = eval( "formObj.area" );
+
+      function changeRooms(formObj) {
+        areasObj = eval("formObj.area");
 
         area = areasObj[areasObj.selectedIndex].value;
-        roomsObj = eval( "formObj.elements['rooms']" );
+        roomsObj = eval("formObj.elements['rooms']");
 
         // remove all entries
         roomsNum = roomsObj.length;
-        for (i=(roomsNum-1); i >= 0; i--)
-        {
+        for (i = (roomsNum - 1); i >= 0; i--) {
           roomsObj.options[i] = null;
         }
         // add entries based on area selected
-        switch (area){
-          <?php
-          foreach ($areas as $a)
-          {
-            print "case \"" . $a['id'] . "\":\n";
-            // get rooms for this area
-            $i = 0;
-            foreach ($rooms as $r)
-            {
-              if ($r['area_id'] == $a['id'])
-              {
-                print "roomsObj.options[$i] = new Option(\"" . escape_js($r['room_name']) . "\"," . $r['id'] . ");\n";
-                $i++;
-              }
-            }
-            // select the first entry by default to ensure
-            // that one room is selected to begin with
-            if ($i > 0)  // but only do this if there is a room
-            {
-              print "roomsObj.options[0].selected = true;\n";
-            }
-            print "break;\n";
-          }
-          ?>
-        } //switch
-        
-        <?php 
-        // Replace the start and end selectors with those for the new area
-        // (1) We set the display for the old elements to "none" and the new
-        // elements to "block".   (2) We also need to disable the old selectors and
-        // enable the new ones: they all have the same name, so we only want
-        // one passed through with the form.  (3) We take a note of the currently
-        // selected start and end values so that we can have a go at finding a
-        // similar time/period in the new area. (4) We also take a note of the old
-        // area id because we'll need that when trying to match up slots: it only
-        // makes sense to match up slots if both old and new area used the same
-        // mode (periods/times).
-        
-        // For the "all day" checkbox, the process is slightly different.  This
-        // is because the checkboxes themselves are visible or not depending on
-        // the time restrictions for that particular area. (1) We set the display 
-        // for the old *container* element to "none" and the new elements to 
-        // "block".  (2) We disable the old checkboxes and enable the new ones for
-        // the same reasons as above.  (3) We copy the value of the old check box
-        // to the new check box
-        ?>
-        var oldStartId = "start_seconds" + currentArea;
-        var oldEndId = "end_seconds" + currentArea;
-        var newStartId = "start_seconds" + area;
-        var newEndId = "end_seconds" + area;
-        var oldAllDayId = "ad" + currentArea;
-        var newAllDayId = "ad" + area;
-        var oldAreaStartValue = formObj[oldStartId].options[formObj[oldStartId].selectedIndex].value;
-        var oldAreaEndValue = formObj[oldEndId].options[formObj[oldEndId].selectedIndex].value;
-        $("#" + oldStartId).hide()
-                           .attr('disabled', 'disabled');
-        $("#" + oldEndId).hide()
-                         .attr('disabled', 'disabled');
-        $("#" + newStartId).show()
-                           .removeAttr('disabled');
-        $("#" + newEndId).show()
-                         .removeAttr('disabled');
-                         +        $("#" + oldAllDayId).hide();
-        $("#" + newAllDayId).show();
-        if($("#all_day" + currentArea).attr('checked') == 'checked')
-        { 
-          $("#all_day" + area).attr('checked', 'checked').removeAttr('disabled');
-        }
-        else
-        {
-          $("#all_day" + area).removeAttr('checked').removeAttr('disabled');
-        }
-        $("#all_day" + currentArea).removeAttr('disabled');
-        var oldArea = currentArea;
-        currentArea = area;
-        prevStartValue = undefined;
-        adjustSlotSelectors(formObj, oldArea, oldAreaStartValue, oldAreaEndValue);
+        switch (area) {
+                                                          <?php
+                                                          foreach ($areas as $a) {
+                                                            print "case \"" . $a['id'] . "\":\n";
+                                                            // get rooms for this area
+                                                            $i = 0;
+                                                            foreach ($rooms as $r) {
+                                                              if ($r['area_id'] == $a['id']) {
+                                                                print "roomsObj.options[$i] = new Option(\"" . escape_js($r['room_name']) . "\"," . $r['id'] . ");\n";
+                                                                $i++;
+                                                              }
+                                                            }
+                                                            // select the first entry by default to ensure
+                                                            // that one room is selected to begin with
+                                                            if ($i > 0)  // but only do this if there is a room
+                                                            {
+                                                              print "roomsObj.options[0].selected = true;\n";
+                                                            }
+                                                            print "break;\n";
+                                                          }
+                                                          ?>
+      } //switch
+
+      <?php
+      // Replace the start and end selectors with those for the new area
+      // (1) We set the display for the old elements to "none" and the new
+      // elements to "block".   (2) We also need to disable the old selectors and
+      // enable the new ones: they all have the same name, so we only want
+      // one passed through with the form.  (3) We take a note of the currently
+      // selected start and end values so that we can have a go at finding a
+      // similar time/period in the new area. (4) We also take a note of the old
+      // area id because we'll need that when trying to match up slots: it only
+      // makes sense to match up slots if both old and new area used the same
+      // mode (periods/times).
+  
+      // For the "all day" checkbox, the process is slightly different.  This
+      // is because the checkboxes themselves are visible or not depending on
+      // the time restrictions for that particular area. (1) We set the display 
+      // for the old *container* element to "none" and the new elements to 
+      // "block".  (2) We disable the old checkboxes and enable the new ones for
+      // the same reasons as above.  (3) We copy the value of the old check box
+      // to the new check box
+      ?>
+      var oldStartId = "start_seconds" + currentArea;
+      var oldEndId = "end_seconds" + currentArea;
+      var newStartId = "start_seconds" + area;
+      var newEndId = "end_seconds" + area;
+      var oldAllDayId = "ad" + currentArea;
+      var newAllDayId = "ad" + area;
+      var oldAreaStartValue = formObj[oldStartId].options[formObj[oldStartId].selectedIndex].value;
+      var oldAreaEndValue = formObj[oldEndId].options[formObj[oldEndId].selectedIndex].value;
+      $("#" + oldStartId).hide()
+        .attr('disabled', 'disabled');
+      $("#" + oldEndId).hide()
+        .attr('disabled', 'disabled');
+      $("#" + newStartId).show()
+        .removeAttr('disabled');
+      $("#" + newEndId).show()
+        .removeAttr('disabled');
+      +        $("#" + oldAllDayId).hide();
+      $("#" + newAllDayId).show();
+      if ($("#all_day" + currentArea).attr('checked') == 'checked') {
+        $("#all_day" + area).attr('checked', 'checked').removeAttr('disabled');
       }
-      
+      else {
+        $("#all_day" + area).removeAttr('checked').removeAttr('disabled');
+      }
+      $("#all_day" + currentArea).removeAttr('disabled');
+      var oldArea = currentArea;
+      currentArea = area;
+      prevStartValue = undefined;
+      adjustSlotSelectors(formObj, oldArea, oldAreaStartValue, oldAreaEndValue);
+                                                      }
+
       // Create area selector, only if we have Javascript
       var div_areas = document.getElementById('div_areas');
       // First of all create a label and insert it into the <div>
@@ -418,21 +414,19 @@ function create_field_entry_areas($disabled=FALSE)
       var area_select = document.createElement('select');
       area_select.setAttribute('id', 'area');
       area_select.setAttribute('name', 'area');
-      area_select.onchange = function(){changeRooms(this.form)}; // setAttribute doesn't work for onChange with IE6
+      area_select.onchange = function () { changeRooms(this.form) }; // setAttribute doesn't work for onChange with IE6
       // populated with options
       var option;
       var option_text
       <?php
       // go through the areas and create the options
-      foreach ($areas as $a)
-      {
+      foreach ($areas as $a) {
         ?>
         option = document.createElement('option');
         option.value = <?php echo $a['id'] ?>;
         option_text = document.createTextNode('<?php echo escape_js($a['area_name']) ?>');
         <?php
-        if ($a['id'] == $area_id)
-        {
+        if ($a['id'] == $area_id) {
           ?>
           option.selected = true;
           <?php
@@ -445,32 +439,31 @@ function create_field_entry_areas($disabled=FALSE)
       ?>
       // insert the <select> which we've just assembled into the <div>
       div_areas.appendChild(area_select);
-      
+
       <?php
-      if ($disabled)
-      {
+      if ($disabled) {
         // If the field is disabled we need to disable the select box and
         // add in a hidden input containing the value
         ?>
         $('#area').attr('disabled', 'disabled');
         $('<input>').attr('type', 'hidden')
-                    .attr('name', 'area')
-                    .val('<?php echo $area_id ?>')
-                    .appendTo('#div_areas');
+          .attr('name', 'area')
+          .val('<?php echo $area_id ?>')
+          .appendTo('#div_areas');
         <?php
       }
       ?>
-      
+
       //]]>
-      </script>
-      
-      
-      <?php
-    } // if count($areas)
+    </script>
+
+
+    <?php
+  } // if count($areas)
 }
 
 
-function create_field_entry_rooms($disabled=FALSE)
+function create_field_entry_rooms($disabled = FALSE)
 {
   global $rooms, $multiroom_allowed, $room_id, $area_id, $selected_rooms;
 
@@ -482,14 +475,11 @@ function create_field_entry_rooms($disabled=FALSE)
     (($disabled) ? " disabled=\"disabled\"" : "") .
     " size=\"5\">\n";
   // $selected_rooms will be populated if we've come from a drag selection
-  if (empty($selected_rooms))
-  {
+  if (empty($selected_rooms)) {
     $selected_rooms = array($room_id);
   }
-  foreach ($rooms as $r)
-  {
-    if ($r['area_id'] == $area_id)
-    {
+  foreach ($rooms as $r) {
+    if ($r['area_id'] == $area_id) {
       $is_selected = in_array($r['id'], $selected_rooms);
       $selected = ($is_selected) ? "selected=\"selected\"" : "";
       echo "<option $selected value=\"" . $r['id'] . "\">" . htmlspecialchars($r['room_name']) . "</option>\n";
@@ -498,15 +488,12 @@ function create_field_entry_rooms($disabled=FALSE)
   echo "</select>\n";
   // No point telling them how to select multiple rooms if the input
   // is disabled
-  if ($multiroom_allowed && !$disabled)
-  {
+  if ($multiroom_allowed && !$disabled) {
     echo "<span>" . get_vocab("ctrl_click") . "</span>\n";
   }
   echo "</div>\n";
-  if ($disabled)
-  {
-    foreach ($selected_rooms as $selected_room)
-    {
+  if ($disabled) {
+    foreach ($selected_rooms as $selected_room) {
       echo "<input type=\"hidden\" name=\"rooms[]\" value=\"$selected_room\">\n";
     }
   }
@@ -514,39 +501,36 @@ function create_field_entry_rooms($disabled=FALSE)
 }
 
 
-function create_field_entry_type($disabled=FALSE)
+function create_field_entry_type($disabled = FALSE)
 {
   global $booking_types, $type;
-  
+
   echo "<div id=\"div_type\">\n";
   echo "<label for=\"type\">" . get_vocab("type") . ":</label>\n";
   echo "<select id=\"type\" name=\"type\"" .
-       (($disabled) ? " disabled=\"disabled\"" : "") .
-       ">\n";
-  foreach ($booking_types as $key)
-  {
-    echo "<option value=\"$key\"" . (($type == $key) ? " selected=\"selected\"" : "") . ">".get_type_vocab($key)."</option>\n";
+    (($disabled) ? " disabled=\"disabled\"" : "") .
+    ">\n";
+  foreach ($booking_types as $key) {
+    echo "<option value=\"$key\"" . (($type == $key) ? " selected=\"selected\"" : "") . ">" . get_type_vocab($key) . "</option>\n";
   }
   echo "</select>\n";
-  if ($disabled)
-  {
+  if ($disabled) {
     echo "<input type=\"hidden\" name=\"type\" value=\"$type\">\n";
   }
   echo "</div>\n";
 }
 
 
-function create_field_entry_confirmation_status($disabled=FALSE)
+function create_field_entry_confirmation_status($disabled = FALSE)
 {
   global $confirmation_enabled, $confirmed;
-  
+
   // Confirmation status
-  if ($confirmation_enabled)
-  {
+  if ($confirmation_enabled) {
     echo "<div id=\"div_confirmation_status\">\n";
     echo "<label>" . get_vocab("confirmation_status") . ":</label>\n";
     echo "<div class=\"group\">\n";
-    echo "<label><input class=\"radio\" name=\"confirmed\" type=\"radio\" value=\"1\"" .
+    echo "<label><input class=\"radio\" id=\"confirmed\" name=\"confirmed\" type=\"radio\" value=\"1\"" .
       (($confirmed) ? " checked=\"checked\"" : "") .
       (($disabled) ? " disabled=\"disabled\"" : "") .
       ">" . get_vocab("confirmed") . "</label>\n";
@@ -555,24 +539,21 @@ function create_field_entry_confirmation_status($disabled=FALSE)
       (($disabled) ? " disabled=\"disabled\"" : "") .
       ">" . get_vocab("tentative") . "</label>\n";
     echo "</div>\n";
-    if ($disabled)
-    {
+    if ($disabled) {
       echo "<input type=\"hidden\" name=\"confirmed\" value=\"" .
-           (($confirmed) ? "1" : "0") .
-           "\">\n";
+        (($confirmed) ? "1" : "0") . "\">\n";
     }
     echo "</div>\n";
   }
 }
 
 
-function create_field_entry_privacy_status($disabled=FALSE)
+function create_field_entry_privacy_status($disabled = FALSE)
 {
   global $private_enabled, $private, $private_mandatory;
-  
+
   // Privacy status
-  if ($private_enabled)
-  {
+  if ($private_enabled) {
     // No need to pass through a hidden variable if disabled because the handler will sort it out
     echo "<div id=\"div_privacy_status\">\n";
     echo "<label>" . get_vocab("privacy_status") . ":</label>\n";
@@ -586,18 +567,17 @@ function create_field_entry_privacy_status($disabled=FALSE)
       (($private_mandatory || $disabled) ? " disabled=\"disabled\"" : "") .
       ">" . get_vocab("private") . "</label>\n";
     echo "</div>\n";
-    if ($disabled)
-    {
+    if ($disabled) {
       echo "<input type=\"hidden\" name=\"private\" value=\"" .
-           (($private) ? "1" : "0") .
-           "\">\n";
+        (($private) ? "1" : "0") .
+        "\">\n";
     }
     echo "</div>\n";
   }
 }
 
 
-function create_field_entry_custom_field($field, $key, $disabled=FALSE)
+function create_field_entry_custom_field($field, $key, $disabled = FALSE)
 {
   global $custom_fields, $tbl_entry, $select_options;
   global $is_mandatory_field, $text_input_max;
@@ -606,13 +586,14 @@ function create_field_entry_custom_field($field, $key, $disabled=FALSE)
   $value = $custom_fields[$key];
   $label_text = get_loc_field_name($tbl_entry, $key) . ":";
   $mandatory = (array_key_exists("entry.$key", $is_mandatory_field) &&
-                $is_mandatory_field["entry.$key"]) ? true : false;
+    $is_mandatory_field["entry.$key"]) ? true : false;
   echo "<div>\n";
   // Output a checkbox if it's a boolean or integer <= 2 bytes (which we will
   // assume are intended to be booleans)
-  if (($field['nature'] == 'boolean') || 
-    (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] <= 2)) )
-  {
+  if (
+    ($field['nature'] == 'boolean') ||
+    (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] <= 2))
+  ) {
     echo "<label for=\"$var_name\">$label_text</label>\n";
     echo "<input type=\"checkbox\" class=\"checkbox\" " .
       "id=\"$var_name\" name=\"$var_name\" value=\"1\" " .
@@ -622,33 +603,32 @@ function create_field_entry_custom_field($field, $key, $disabled=FALSE)
       ">\n";
   }
   // Output a select box if they want one
-  elseif (!empty($select_options["entry.$key"]))
-  {
-    generate_select($label_text, $var_name, $value,
-      $select_options["entry.$key"], $mandatory, $disabled);
+  elseif (!empty($select_options["entry.$key"])) {
+    generate_select(
+      $label_text,
+      $var_name,
+      $value,
+      $select_options["entry.$key"],
+      $mandatory,
+      $disabled
+    );
   }
   // Output a textarea if it's a character string longer than the limit for a
   // text input
-  elseif (($field['nature'] == 'character') && isset($field['length']) && ($field['length'] > $text_input_max))
-  {
+  elseif (($field['nature'] == 'character') && isset($field['length']) && ($field['length'] > $text_input_max)) {
     // HTML5 does not allow a pattern attribute for the textarea element
     $attributes = (isset($is_mandatory_field["entry.$key"]) && $is_mandatory_field["entry.$key"]) ? "required" : "";
-    generate_textarea($label_text, $var_name, $value, $disabled, $attributes);   
+    generate_textarea($label_text, $var_name, $value, $disabled, $attributes);
   }
   // Otherwise output a text input
-  else
-  {
+  else {
     $is_integer_field = ($field['nature'] == 'integer') && ($field['length'] > 2);
-    if ($is_integer_field)
-    {
+    if ($is_integer_field) {
       $attributes = 'type="number" step="1"';
-    }
-    else
-    {
+    } else {
       $attributes = 'type="text"';
     }
-    if (isset($is_mandatory_field["entry.$key"]) && $is_mandatory_field["entry.$key"])
-    {
+    if (isset($is_mandatory_field["entry.$key"]) && $is_mandatory_field["entry.$key"]) {
       $attributes .= ' required';
       // 'required' is not sufficient for strings, because we also want to make sure
       // that the string contains at least one non-whitespace character
@@ -656,8 +636,7 @@ function create_field_entry_custom_field($field, $key, $disabled=FALSE)
     }
     generate_input($label_text, $var_name, $value, $disabled, NULL, $attributes);
   }
-  if ($disabled)
-  {
+  if ($disabled) {
     echo "<input type=\"hidden\" name=\"$var_name\" value=\"$value\">\n";
   }
   echo "</div>\n";
@@ -697,25 +676,19 @@ $multiroom_allowed = $is_admin || empty($auth['only_admin_can_select_multiroom']
 
 
 
-if (isset($start_seconds))
-{
-  $minutes = intval($start_seconds/60);
-  if ($enable_periods)
-  {
-    $period = $minutes - (12*60);
-  }
-  else
-  {
-    $hour = intval($minutes/60);
-    $minute = $minutes%60;
+if (isset($start_seconds)) {
+  $minutes = intval($start_seconds / 60);
+  if ($enable_periods) {
+    $period = $minutes - (12 * 60);
+  } else {
+    $hour = intval($minutes / 60);
+    $minute = $minutes % 60;
   }
 }
 
-if (isset($start_date))
-{
+if (isset($start_date)) {
   list($year, $month, $day) = explode('-', $start_date);
-  if (isset($end_date) && ($start_date != $end_date) && $repeats_allowed)
-  {
+  if (isset($end_date) && ($start_date != $end_date) && $repeats_allowed) {
     $rep_type = REP_DAILY;
     list($rep_end_year, $rep_end_month, $rep_end_day) = explode('-', $end_date);
   }
@@ -728,11 +701,10 @@ if (isset($start_date))
 // go back to the page we started at (rather than going to the default view).  If this is the first time 
 // through, then $HTTP_REFERER holds the original caller.    If this is the second time through we will have 
 // stored it in $returl.
-if (!isset($returl))
-{
+if (!isset($returl)) {
   $returl = isset($HTTP_REFERER) ? $HTTP_REFERER : "";
 }
-    
+
 
 
 // This page will either add or modify a booking
@@ -749,55 +721,46 @@ if (!isset($returl))
 // and if it's a modification we need to get all the old data from the db.
 // If we had $id passed in then it's a modification.
 
-if (isset($id))
-{
+if (isset($id)) {
   $sql = "SELECT *
             FROM $tbl_entry
            WHERE id=$id
            LIMIT 1";
-   
+
   $res = sql_query($sql);
-  if (! $res)
-  {
+  if (!$res) {
     trigger_error(sql_error(), E_USER_WARNING);
     fatal_error(TRUE, get_vocab("fatal_db_error"));
   }
-  if (sql_count($res) != 1)
-  {
+  if (sql_count($res) != 1) {
     fatal_error(1, get_vocab("entryid") . $id . get_vocab("not_found"));
   }
 
   $row = sql_row_keyed($res, 0);
   sql_free($res);
-  
+
   // We've possibly got a new room and area, so we need to update the settings
   // for this area.
   $area = get_area($row['room_id']);
   get_area_settings($area);
-  
+
   $private = $row['status'] & STATUS_PRIVATE;
-  if ($private_mandatory) 
-  {
+  if ($private_mandatory) {
     $private = $private_default;
   }
   // Need to clear some data if entry is private and user
   // does not have permission to edit/view details
-  if (isset($copy) && ($create_by != $row['create_by'])) 
-  {
+  if (isset($copy) && ($create_by != $row['create_by'])) {
     // Entry being copied by different user
     // If they don't have rights to view details, clear them
     $privatewriteable = getWritable($row['create_by'], $user, $row['room_id']);
     $keep_private = (is_private_event($private) && !$privatewriteable);
-  }
-  else
-  {
+  } else {
     $keep_private = FALSE;
   }
-  
-  foreach ($row as $column => $value)
-  {
-    switch ($column)
-    {
+
+  foreach ($row as $column => $value) {
+    switch ($column) {
       // Don't bother with these columns
       case 'id':
       case 'timestamp':
@@ -806,7 +769,7 @@ if (isset($id))
       case 'info_user':
       case 'info_text':
         break;
-      
+
       // These columns cannot be made private  
       case 'room_id':
         // We need to preserve the original room_id for existing bookings and pass
@@ -823,8 +786,7 @@ if (isset($id))
         // NOTE:  We do not set the original_room_id if we are copying an entry,
         // because when we are copying we are effectively making a new entry and
         // so we want edit_entry_handler to assign a new UID, etc.
-        if (!$copy)
-        {
+        if (!$copy) {
           $original_room_id = $row['room_id'];
         }
       case 'ical_uid':
@@ -833,7 +795,7 @@ if (isset($id))
       case 'entry_type':
         $$column = $row[$column];
         break;
-      
+
       // These columns can be made private [not sure about 'type' though - haven't
       // checked whether it makes sense/works to make the 'type' column private]
       case 'name':
@@ -841,90 +803,84 @@ if (isset($id))
       case 'type':
         $$column = ($keep_private && $is_private_field["entry.$column"]) ? '' : $row[$column];
         break;
-        
+
       case 'status':
         // No need to do the privacy status as we've already done that.
         // Just do the confirmation status
         $confirmed = !($row['status'] & STATUS_TENTATIVE);
         break;
-      
+
       case 'repeat_id':
-        $rep_id      = $row['repeat_id'];
+        $rep_id = $row['repeat_id'];
         break;
-        
+
       case 'create_by':
         // If we're copying an existing entry then we need to change the create_by (they could be
         // different if it's an admin doing the copying)
-        $create_by   = (isset($copy)) ? $user : $row['create_by'];
+        $create_by = (isset($copy)) ? $user : $row['create_by'];
         break;
-        
+
       case 'start_time':
         $start_time = $row['start_time'];
         break;
-        
+
       case 'end_time':
         $end_time = $row['end_time'];
         $duration = $row['end_time'] - $row['start_time'] - cross_dst($row['start_time'], $row['end_time']);
         break;
-        
+
       default:
         $custom_fields[$column] = ($keep_private && $is_private_field["entry.$column"]) ? '' : $row[$column];
         break;
     }
   }
-  
 
-  if(($entry_type == ENTRY_RPT_ORIGINAL) || ($entry_type == ENTRY_RPT_CHANGED))
-  {
+
+  if (($entry_type == ENTRY_RPT_ORIGINAL) || ($entry_type == ENTRY_RPT_CHANGED)) {
     $sql = "SELECT rep_type, start_time, end_time, end_date, rep_opt, rep_num_weeks
               FROM $tbl_repeat 
              WHERE id=$rep_id
              LIMIT 1";
-   
+
     $res = sql_query($sql);
-    if (! $res)
-    {
+    if (!$res) {
       trigger_error(sql_error(), E_USER_WARNING);
       fatal_error(TRUE, get_vocab("fatal_db_error"));
     }
-    if (sql_count($res) != 1)
-    {
-      fatal_error(1,
-                  get_vocab("repeat_id") . $rep_id . get_vocab("not_found"));
+    if (sql_count($res) != 1) {
+      fatal_error(
+        1,
+        get_vocab("repeat_id") . $rep_id . get_vocab("not_found")
+      );
     }
 
     $row = sql_row_keyed($res, 0);
     sql_free($res);
-   
+
     $rep_type = $row['rep_type'];
 
     // If it's a repeating entry get the repeat details
-    if (isset($rep_type) && ($rep_type != REP_NONE))
-    {
+    if (isset($rep_type) && ($rep_type != REP_NONE)) {
       // If we're editing the series we want the start_time and end_time to be the
       // start and of the first entry of the series, not the start of this entry
-      if ($edit_type == "series")
-      {
+      if ($edit_type == "series") {
         $start_time = $row['start_time'];
         $end_time = $row['end_time'];
       }
-      
-      $rep_end_day   = (int)strftime('%d', $row['end_date']);
-      $rep_end_month = (int)strftime('%m', $row['end_date']);
-      $rep_end_year  = (int)strftime('%Y', $row['end_date']);
+
+      $rep_end_day = (int) strftime('%d', $row['end_date']);
+      $rep_end_month = (int) strftime('%m', $row['end_date']);
+      $rep_end_year = (int) strftime('%Y', $row['end_date']);
       // Get the end date in string format as well, for use when
       // the input is disabled
-      $rep_end_date = utf8_strftime('%A %d %B %Y',$row['end_date']);
+      $rep_end_date = utf8_strftime('%A %d %B %Y', $row['end_date']);
 
       $rep_day = array();
-      switch ($rep_type)
-      {
+      switch ($rep_type) {
         case REP_WEEKLY:
         case REP_N_WEEKLY:
-          for ($i=0; $i<7; $i++)
-          {
-            if ($row['rep_opt'][$i])
-            {
+          for ($i = 0; $i < 7; $i++) {
+            if ($row['rep_opt'][$i]) {
               $rep_day[] = $i;
             }
           }
@@ -932,8 +888,7 @@ if (isset($id))
           // when the input is disabled
           $rep_opt = $row['rep_opt'];
 
-          if ($rep_type == REP_N_WEEKLY)
-          {
+          if ($rep_type == REP_N_WEEKLY) {
             $rep_num_weeks = $row['rep_num_weeks'];
           }
 
@@ -944,56 +899,45 @@ if (isset($id))
       }
     }
   }
-}
-else
-{
+} else {
   // It is a new booking. The data comes from whichever button the user clicked
-  $edit_type     = "series";
-  $name          = "";
-  $create_by     = $user;
-  $description   = $default_description;
-  $type          = $default_type;
-  $room_id       = $room;
-  $rep_id        = 0;
+  $edit_type = "series";
+  $name = "";
+  $create_by = $user;
+  $description = $default_description;
+  $type = $default_type;
+  $room_id = $room;
+  $rep_id = 0;
   if (!isset($rep_type))  // We might have set it through a drag selection
   {
-    $rep_type      = REP_NONE;
-    $rep_end_day   = $day;
+    $rep_type = REP_NONE;
+    $rep_end_day = $day;
     $rep_end_month = $month;
-    $rep_end_year  = $year;
+    $rep_end_year = $year;
   }
-  $rep_day       = array();
-  $private       = $private_default;
-  $confirmed     = $confirmed_default;
-  
+  $rep_day = array();
+  $private = $private_default;
+  $confirmed = $confirmed_default;
+
   // now initialise the custom fields
-  foreach ($fields as $field)
-  {
-    if (!in_array($field['name'], $standard_fields['entry']))
-    {
+  foreach ($fields as $field) {
+    if (!in_array($field['name'], $standard_fields['entry'])) {
       $custom_fields[$field['name']] = '';
     }
   }
 
   // Get the hour and minute, converting a period to its MRBS time
   // Set some sensible defaults
-  if ($enable_periods)
-  {
-    if (isset($period))
-    {
-      $hour = 12 + intval($period/60);
+  if ($enable_periods) {
+    if (isset($period)) {
+      $hour = 12 + intval($period / 60);
       $minute = $period % 60;
-    }
-    else
-    {
+    } else {
       $hour = 0;
       $minute = 0;
     }
-  }
-  else
-  {
-    if (!isset($hour) || !isset($minute))
-    {
+  } else {
+    if (!isset($hour) || !isset($minute)) {
       $hour = $morningstarts;
       $minute = $morningstarts_minutes;
     }
@@ -1001,21 +945,17 @@ else
 
   $start_time = mktime($hour, $minute, 0, $month, $day, $year);
 
-  if (isset($end_seconds))
-  {
-    $end_minutes = intval($end_seconds/60);
-    $end_hour = intval($end_minutes/60);
-    $end_minute = $end_minutes%60;
+  if (isset($end_seconds)) {
+    $end_minutes = intval($end_seconds / 60);
+    $end_hour = intval($end_minutes / 60);
+    $end_minute = $end_minutes % 60;
     $end_time = mktime($end_hour, $end_minute, 0, $month, $day, $year);
     $duration = $end_time - $start_time - cross_dst($start_time, $end_time);
-  }
-  else
-  {
-    if (!isset($default_duration))
-    {
+  } else {
+    if (!isset($default_duration)) {
       $default_duration = (60 * 60);
     }
-    $duration    = ($enable_periods ? 60 : $default_duration);
+    $duration = ($enable_periods ? 60 : $default_duration);
     $end_time = $start_time + $duration;
     // The end time can't be past the end of the booking day
     $pm7 = mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year);
@@ -1023,15 +963,14 @@ else
   }
 }
 
-$start_hour  = strftime('%H', $start_time);
-$start_min   = strftime('%M', $start_time);
+$start_hour = strftime('%H', $start_time);
+$start_min = strftime('%M', $start_time);
 
 // These next 4 if statements handle the situation where
 // this page has been accessed directly and no arguments have
 // been passed to it.
 // If we have not been provided with a room_id
-if (empty( $room_id ) )
-{
+if (empty($room_id)) {
   $sql = "SELECT id FROM $tbl_room WHERE disabled=0 LIMIT 1";
   $res = sql_query($sql);
   $row = sql_row_keyed($res, 0);
@@ -1043,8 +982,7 @@ $area_id = mrbsGetRoomArea($room_id);
 
 
 // Remove "Undefined variable" notice
-if (!isset($rep_num_weeks))
-{
+if (!isset($rep_num_weeks)) {
   $rep_num_weeks = "";
 }
 
@@ -1052,8 +990,7 @@ $enable_periods ? toPeriodString($start_min, $duration, $dur_units) : toTimeStri
 
 //now that we know all the data to fill the form with we start drawing it
 
-if (!getWritable($create_by, $user, $room_id))
-{
+if (!getWritable($create_by, $user, $room_id)) {
   showAccessDenied($day, $month, $year, $area, isset($room) ? $room : "");
   exit;
 }
@@ -1069,14 +1006,11 @@ $sql = "SELECT R.id, R.room_name, R.area_id
            AND A.disabled=0
       ORDER BY R.area_id, R.sort_key";
 $res = sql_query($sql);
-if ($res)
-{
-  for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)
-  {
+if ($res) {
+  for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++) {
     $rooms[$row['id']] = $row;
   }
 }
-    
 // Get the details of all the enabled areas
 $areas = array();
 $sql = "SELECT id, area_name, resolution, default_duration, enable_periods,
@@ -1085,15 +1019,13 @@ $sql = "SELECT id, area_name, resolution, default_duration, enable_periods,
          WHERE disabled=0
       ORDER BY area_name";
 $res = sql_query($sql);
-if ($res)
-{
-  for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)
-  {
+if ($res) {
+  for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++) {
     $areas[$row['id']] = $row;
     // The following config settings aren't yet per-area, but we'll treat them as if
     // they are to make it easier to change them to per-area settings in the future.
     $areas[$row['id']]['max_duration_enabled'] = $max_duration_enabled;
-    $areas[$row['id']]['max_duration_secs']    = $max_duration_secs;
+    $areas[$row['id']]['max_duration_secs'] = $max_duration_secs;
     $areas[$row['id']]['max_duration_periods'] = $max_duration_periods;
     // Clean up the settings, getting rid of any nulls and casting boolean fields into bools
     $areas[$row['id']] = clean_area_row($areas[$row['id']]);
@@ -1106,364 +1038,589 @@ if ($res)
 ?>
 
 <script type="text/javascript">
-//<![CDATA[
+  //<![CDATA[
 
-var currentArea = <?php echo $area_id ?>;
-var areas = [];
-<?php
-// give JavaScript a copy of the PHP array $areas
-foreach ($areas as $area)
-{
-  echo "areas[${area['id']}] = [];\n";
-  foreach ($area as $key => $value)
-  {
-    if (in_array($key, array('area_name', 'max_duration_units')))
-    {
-      // Enclose strings in quotes
-      $value = "'" . escape_js($value) . "'";
+  var currentArea = <?php echo $area_id ?>;
+  var areas = [];
+  <?php
+  // give JavaScript a copy of the PHP array $areas
+  foreach ($areas as $area) {
+    echo "areas[${area['id']}] = [];\n";
+    foreach ($area as $key => $value) {
+      if (in_array($key, array('area_name', 'max_duration_units'))) {
+        // Enclose strings in quotes
+        $value = "'" . escape_js($value) . "'";
+      } elseif (in_array($key, $boolean_fields['area'])) {
+        // Convert booleans
+        $value = ($value) ? 'true' : 'false';
+      }
+      echo "areas[${area['id']}]['$key'] = $value;\n";
     }
-    elseif (in_array($key, $boolean_fields['area']))
-    {
-      // Convert booleans
-      $value = ($value) ? 'true' : 'false';
-    }
-    echo "areas[${area['id']}]['$key'] = $value;\n";
   }
-}
-?>
+  ?>
 
-// set up some global variables for use by OnAllDayClick(). 
-var old_start, old_end;
+  // set up some global variables for use by OnAllDayClick(). 
+  var old_start, old_end;
 
-// Executed when the user clicks on the all_day checkbox.
-function OnAllDayClick(el)
-{
-  var form = document.forms["main"];
-  if (form)
-  {
-    var startSelect = form["start_seconds" + currentArea];
-    var endSelect = form["end_seconds" + currentArea];
-    var allDay = form["all_day" + currentArea];
-    var i;
-    if (allDay.checked) // If checking the box...
-    {
-      <?php
-      // Save the old values, disable the inputs and, to avoid user confusion,
-      // show the start and end times as the beginning and end of the booking
-      // (Note that we save the value rather than the index because the number
-      // of options in the select box will change)
-      ?>
-      old_start = startSelect.options[startSelect.selectedIndex].value;
-      startSelect.selectedIndex = 0;
-      startSelect.disabled = true;
-    
-      old_end = endSelect.options[endSelect.selectedIndex].value;
-      endSelect.selectedIndex = endSelect.options.length - 1;
-      endSelect.disabled = true;
-    }
-    else  <?php // restore the old values and re-enable the inputs ?>
-    {
-      startSelect.disabled = false;
-      for (i=0; i<startSelect.options.length; i++)
+  // Executed when the user clicks on the all_day checkbox.
+  function OnAllDayClick(el) {
+    var form = document.forms["main"];
+    if (form) {
+      var startSelect = form["start_seconds" + currentArea];
+      var endSelect = form["end_seconds" + currentArea];
+      var allDay = form["all_day" + currentArea];
+      var i;
+      if (allDay.checked) // If checking the box...
       {
-        if (startSelect.options[i].value == old_start)
-        {
-          startSelect.options.selectedIndex = i;
-          break;
-        }
-      }     
-      endSelect.disabled = false;
-      for (i=0; i<endSelect.options.length; i++)
+        <?php
+        // Save the old values, disable the inputs and, to avoid user confusion,
+        // show the start and end times as the beginning and end of the booking
+        // (Note that we save the value rather than the index because the number
+        // of options in the select box will change)
+        ?>
+        old_start = startSelect.options[startSelect.selectedIndex].value;
+        startSelect.selectedIndex = 0;
+        startSelect.disabled = true;
+
+        old_end = endSelect.options[endSelect.selectedIndex].value;
+        endSelect.selectedIndex = endSelect.options.length - 1;
+        endSelect.disabled = true;
+      }
+      else <?php // restore the old values and re-enable the inputs ?>
       {
-        if (endSelect.options[i].value == old_end)
-        {
-          endSelect.options.selectedIndex = i;
-          break;
+        startSelect.disabled = false;
+        for (i = 0; i < startSelect.options.length; i++) {
+          if (startSelect.options[i].value == old_start) {
+            startSelect.options.selectedIndex = i;
+            break;
+          }
         }
-      } 
-      prevStartValue = undefined;  <?php // because we don't want adjustSlotSelectors() to change the end time ?>
+        endSelect.disabled = false;
+        for (i = 0; i < endSelect.options.length; i++) {
+          if (endSelect.options[i].value == old_end) {
+            endSelect.options.selectedIndex = i;
+            break;
+          }
+        }
+        prevStartValue = undefined; <?php // because we don't want adjustSlotSelectors() to change the end time ?>
+      }
+      adjustSlotSelectors(form); <?php // need to get the duration right ?>
     }
-    adjustSlotSelectors(form); <?php // need to get the duration right ?>
   }
-}
-//]]>
+  //]]>
 </script>
 
-<?php
-
-if (isset($id) && !isset($copy))
-{
-  if ($edit_type == "series")
-  {
-    $token = "editseries";
-  }
-  else
-  {
-    $token = "editentry";
-  }
-}
-else
-{
-  if (isset($copy))
-  {
-    if ($edit_type == "series")
-    {
-      $token = "copyseries";
-    }
-    else
-    {
-      $token = "copyentry";
-    }
-  }
-  else
-  {
-    $token = "addentry";
-  }
-}
-?>
+<input?php if (isset($id) && !isset($copy)) { if ($edit_type=="series" ) { $token="editseries" ; } else {
+  $token="editentry" ; } } else { if (isset($copy)) { if ($edit_type=="series" ) { $token="copyseries" ; } else {
+  $token="copyentry" ; } } else { $token="addentry" ; } } ?>
 
 
-<form class="form_general" id="main" action="edit_entry_handler.php" method="post">
-  <fieldset>
-  <legend><?php echo get_vocab($token); ?></legend>
+  <form class="form_general" id="main" action="edit_entry_handler.php" method="post">
+    <!--form class="form_general" id="main" action="modal_mail.php" method="post"-->
+    <fieldset>
+      <legend><?php echo get_vocab($token); ?></legend>
 
-<?php
-
-foreach ($edit_entry_field_order as $key)
-{
-  switch( $key )
-  {
-  case 'name':
-    create_field_entry_name();
-    break;
-
-  case 'description':
-    create_field_entry_description();
-    break;
-
-  case 'start_date':
-    create_field_entry_start_date();
-    break;
-
-  case 'end_date':
-    create_field_entry_end_date();
-    break;
-
-  case 'areas':
-    create_field_entry_areas();
-    break;
-
-  case 'rooms':
-    create_field_entry_rooms();
-    break;
-
-  case 'type':
-    create_field_entry_type();
-    break;
-
-  case 'confirmation_status':
-    create_field_entry_confirmation_status();
-    break;
-
-  case 'privacy_status':
-    create_field_entry_privacy_status();
-    break;
-
-  default:
-    create_field_entry_custom_field($custom_fields_map[$key], $key);
-    break;
-  }
-}
-    
-    // REPEAT BOOKING INPUTS
-    if (($edit_type == "series") && $repeats_allowed)
-    {
-      // If repeats are allowed and the edit_type is a series (which means
-      // that either you're editing an existing series or else you're making
-      // a new booking) then print the repeat inputs
-      echo "<fieldset id=\"rep_info\">\n";
-      echo "<legend></legend>\n";
-      ?>
-      <div id="rep_type">
-        <label><?php echo get_vocab("rep_type")?>:</label>
-        <div class="group">
-          <?php
-          for ($i = 0; isset($vocab["rep_type_$i"]); $i++)
-          {
-            echo "      <label><input class=\"radio\" name=\"rep_type\" type=\"radio\" value=\"" . $i . "\"";
-            if ($i == $rep_type)
-            {
-              echo " checked=\"checked\"";
-            }
-            echo ">" . get_vocab("rep_type_$i") . "</label>\n";
-          }
-          ?>
-        </div>
-      </div>
-
-      <div id="rep_end_date">
-        <?php
-        echo "<label>" . get_vocab("rep_end_date") . ":</label>\n";
-        genDateSelector("rep_end_", $rep_end_day, $rep_end_month, $rep_end_year);
-        ?>
-      </div>
-      
-      <div id="rep_day">
-        <label><?php echo get_vocab("rep_rep_day")?>:<br><?php echo get_vocab("rep_for_weekly")?></label>
-        <div class="group">
-          <?php
-          // Display day name checkboxes according to language and preferred weekday start.
-          for ($i = 0; $i < 7; $i++)
-          {
-            $wday = ($i + $weekstarts) % 7;
-            echo "      <label><input class=\"checkbox\" name=\"rep_day[]\" value=\"$wday\" type=\"checkbox\"";
-            if (in_array($wday, $rep_day))
-            {
-              echo " checked=\"checked\"";
-            }
-            echo ">" . day_name($wday) . "</label>\n";
-          }
-          ?>
-        </div>
-      </div>
-     
       <?php
-      echo "<div>\n";
-      $label_text = get_vocab("rep_num_weeks") . ":<br>" . get_vocab("rep_for_nweekly");
-      $attributes = 'type="number" min="' . REP_NUM_WEEKS_MIN . '" step="1"';
-      generate_input($label_text, 'rep_num_weeks', $rep_num_weeks, FALSE, NULL, $attributes);
-      echo "</div>\n";
-      // Checkbox for skipping past conflicts
-      echo "<div>\n";
-      echo "<label for=\"skip\">" . get_vocab("skip_conflicts") . ":</label>\n";
-      echo "<input type=\"checkbox\" class=\"checkbox\" " .
-                "id=\"skip\" name=\"skip\" value=\"1\" " .
-                ((!empty($skip_default)) ? " checked=\"checked\"" : "") .
-                ">\n";
-      echo "</div>\n";
 
-      echo "</fieldset>\n";
-    }
-    elseif (isset($id))
-    {
-      // otherwise, if it's an existing booking, show the repeat information
-      // and pass it through to the handler but do not let the user edit it
-      // (because they're either not allowed to, or else they've chosen to edit
-      // an individual entry rather than a series).
-      // (NOTE: when repeat bookings are restricted to admins, an ordinary user
-      // would not normally be able to get to the stage of trying to edit a series.
-      // But we have to cater for the possibility because it could happen if (a) the
-      // series was created before the policy was introduced or (b) the user has
-      // been demoted since the series was created).
-      $key = "rep_type_" . (isset($rep_type) ? $rep_type : REP_NONE);
-      echo "<fieldset id=\"rep_info\">\n";
-      echo "<legend></legend>\n";
-      echo "<div>\n";
-      echo "<label>" . get_vocab("rep_type") . ":</label>\n";
-      echo "<select disabled=\"disabled\">\n";
-      echo "<option>" . get_vocab($key) . "</option>\n";
-      echo "</select>\n";
-      echo "<input type=\"hidden\" name=\"rep_type\" value=\"" . REP_NONE . "\">\n";
-      echo "</div>\n";
-      if (isset($rep_type) && ($rep_type != REP_NONE))
-      {
-        $opt = "";
-        if (($rep_type == REP_WEEKLY) || ($rep_type == REP_N_WEEKLY))
-        {
-          // Display day names according to language and preferred weekday start.
-          for ($i = 0; $i < 7; $i++)
-          {
-            $wday = ($i + $weekstarts) % 7;
-            if ($rep_opt[$wday])
-            {
-              $opt .= day_name($wday) . " ";
-            }
-          }
-        }
-        if($opt)
-        {
-          echo "  <div><label>".get_vocab("rep_rep_day").":</label><input type=\"text\" value=\"$opt\" disabled=\"disabled\"></div>\n";
-        }
-        echo "  <div><label>".get_vocab("rep_end_date").":</label><input type=\"text\" value=\"$rep_end_date\" disabled=\"disabled\"></div>\n";
-        if ($rep_type == REP_N_WEEKLY)
-        {
-          echo "<div>\n";
-          echo "<label for=\"rep_num_weeks\">" . get_vocab("rep_num_weeks") . ":<br>" . get_vocab("rep_for_nweekly") . "</label>\n";
-          echo "<input type=\"text\" id=\"rep_num_weeks\" name=\"rep_num_weeks\" value=\"$rep_num_weeks\" disabled=\"disabled\">\n";
-          echo "</div>\n";
+      foreach ($edit_entry_field_order as $key) {
+        switch ($key) {
+          case 'name':
+            create_field_entry_name();
+            break;
+
+          case 'description':
+            create_field_entry_description();
+            break;
+
+          case 'start_date':
+            create_field_entry_start_date();
+            break;
+
+          case 'end_date':
+            create_field_entry_end_date();
+            break;
+
+          case 'areas':
+            create_field_entry_areas();
+            break;
+
+          case 'rooms':
+            create_field_entry_rooms();
+            break;
+
+          case 'type':
+            create_field_entry_type();
+            break;
+
+          case 'confirmation_status':
+            create_field_entry_confirmation_status();
+            break;
+
+          case 'privacy_status':
+            create_field_entry_privacy_status();
+            break;
+
+          default:
+            create_field_entry_custom_field($custom_fields_map[$key], $key);
+            break;
         }
       }
-      echo "</fieldset>\n";
-    }
-    
-    ?>
-    <input type="hidden" name="returl" value="<?php echo htmlspecialchars($returl) ?>">
-    <input type="hidden" name="create_by" value="<?php echo htmlspecialchars($create_by)?>">
-    <input type="hidden" name="rep_id" value="<?php echo $rep_id?>">
-    <input type="hidden" name="edit_type" value="<?php echo $edit_type?>">
-    <?php
-    // The original_room_id will only be set if this was an existing booking.
-    // If it is an existing booking then edit_entry_handler needs to know the
-    // original room id and the ical_uid and the ical_sequence, because it will
-    // have to keep the ical_uid and increment the ical_sequence for the room that
-    // contained the original booking.  If it's a new booking it will generate a new
-    // ical_uid and start the ical_sequence at 0.
-    if (isset($original_room_id))
-    {
-      echo "<input type=\"hidden\" name=\"original_room_id\" ".
-        "value=\"$original_room_id\">\n";
-      echo "<input type=\"hidden\" name=\"ical_uid\" value=\"".
-        htmlspecialchars($ical_uid)."\">\n";
-      echo "<input type=\"hidden\" name=\"ical_sequence\" value=\"".
-        htmlspecialchars($ical_sequence)."\">\n";
-      echo "<input type=\"hidden\" name=\"ical_recur_id\" value=\"".
-        htmlspecialchars($ical_recur_id)."\">\n";
-    }
-    if(isset($id) && !isset($copy))
-    {
-      echo "<input type=\"hidden\" name=\"id\" value=\"$id\">\n";
+
+      // REPEAT BOOKING INPUTS
+      if (($edit_type == "series") && $repeats_allowed) {
+        // If repeats are allowed and the edit_type is a series (which means
+        // that either you're editing an existing series or else you're making
+        // a new booking) then print the repeat inputs
+        echo "<fieldset id=\"rep_info\">\n";
+        echo "<legend></legend>\n";
+        ?>
+        <div id="rep_type">
+          <label><?php echo get_vocab("rep_type") ?>:</label>
+          <div class="group">
+            <?php
+            for ($i = 0; isset($vocab["rep_type_$i"]); $i++) {
+              echo "      <label><input class=\"radio\" name=\"rep_type\" type=\"radio\" value=\"" . $i . "\"";
+              if ($i == $rep_type) {
+                echo " checked=\"checked\"";
+              }
+              echo ">" . get_vocab("rep_type_$i") . "</label>\n";
+            }
+            ?>
+          </div>
+        </div>
+
+        <div id="rep_end_date">
+          <?php
+          echo "<label>" . get_vocab("rep_end_date") . ":</label>\n";
+          genDateSelector("rep_end_", $rep_end_day, $rep_end_month, $rep_end_year);
+          ?>
+        </div>
+
+        <div id="rep_day">
+          <label><?php echo get_vocab("rep_rep_day") ?>:<br><?php echo get_vocab("rep_for_weekly") ?></label>
+          <div class="group">
+            <?php
+            // Display day name checkboxes according to language and preferred weekday start.
+            for ($i = 0; $i < 7; $i++) {
+              $wday = ($i + $weekstarts) % 7;
+              echo "      <label><input class=\"checkbox\" name=\"rep_day[]\" value=\"$wday\" type=\"checkbox\"";
+              if (in_array($wday, $rep_day)) {
+                echo " checked=\"checked\"";
+              }
+              echo ">" . day_name($wday) . "</label>\n";
+            }
+            ?>
+          </div>
+        </div>
+
+        <?php
+        echo "<div>\n";
+        $label_text = get_vocab("rep_num_weeks") . ":<br>" . get_vocab("rep_for_nweekly");
+        $attributes = 'type="number" min="' . REP_NUM_WEEKS_MIN . '" step="1"';
+        generate_input($label_text, 'rep_num_weeks', $rep_num_weeks, FALSE, NULL, $attributes);
+        echo "</div>\n";
+        // Checkbox for skipping past conflicts
+        echo "<div>\n";
+        echo "<label for=\"skip\">" . get_vocab("skip_conflicts") . ":</label>\n";
+        echo "<input type=\"checkbox\" class=\"checkbox\" " .
+          "id=\"skip\" name=\"skip\" value=\"1\" " .
+          ((!empty($skip_default)) ? " checked=\"checked\"" : "") .
+          ">\n";
+        echo "</div>\n";
+
+        echo "</fieldset>\n";
+      } elseif (isset($id)) {
+        // otherwise, if it's an existing booking, show the repeat information
+        // and pass it through to the handler but do not let the user edit it
+        // (because they're either not allowed to, or else they've chosen to edit
+        // an individual entry rather than a series).
+        // (NOTE: when repeat bookings are restricted to admins, an ordinary user
+        // would not normally be able to get to the stage of trying to edit a series.
+        // But we have to cater for the possibility because it could happen if (a) the
+        // series was created before the policy was introduced or (b) the user has
+        // been demoted since the series was created).
+        $key = "rep_type_" . (isset($rep_type) ? $rep_type : REP_NONE);
+        echo "<fieldset id=\"rep_info\">\n";
+        echo "<legend></legend>\n";
+        echo "<div>\n";
+        echo "<label>" . get_vocab("rep_type") . ":</label>\n";
+        echo "<select disabled=\"disabled\">\n";
+        echo "<option>" . get_vocab($key) . "</option>\n";
+        echo "</select>\n";
+        echo "<input type=\"hidden\" name=\"rep_type\" value=\"" . REP_NONE . "\">\n";
+        echo "</div>\n";
+        if (isset($rep_type) && ($rep_type != REP_NONE)) {
+          $opt = "";
+          if (($rep_type == REP_WEEKLY) || ($rep_type == REP_N_WEEKLY)) {
+            // Display day names according to language and preferred weekday start.
+            for ($i = 0; $i < 7; $i++) {
+              $wday = ($i + $weekstarts) % 7;
+              if ($rep_opt[$wday]) {
+                $opt .= day_name($wday) . " ";
+              }
+            }
+          }
+          if ($opt) {
+            echo "  <div><label>" . get_vocab("rep_rep_day") . ":</label><input type=\"text\" value=\"$opt\" disabled=\"disabled\"></div>\n";
+          }
+          echo "  <div><label>" . get_vocab("rep_end_date") . ":</label><input type=\"text\" value=\"$rep_end_date\" disabled=\"disabled\"></div>\n";
+          if ($rep_type == REP_N_WEEKLY) {
+            echo "<div>\n";
+            echo "<label for=\"rep_num_weeks\">" . get_vocab("rep_num_weeks") . ":<br>" . get_vocab("rep_for_nweekly") . "</label>\n";
+            echo "<input type=\"text\" id=\"rep_num_weeks\" name=\"rep_num_weeks\" value=\"$rep_num_weeks\" disabled=\"disabled\">\n";
+            echo "</div>\n";
+          }
+        }
+        echo "<input type=\"hidden\" name=\"f_observaciones\" id=\"f_observaciones\" >";
+        echo "<input type=\"hidden\" name=\"f_confirmado\" id=\"f_confirmado\" >";
+        echo "<input type=\"hidden\" name=\"f_salones\" id=\"f_salones\" >";
+        echo "</fieldset>\n";
+      }
+
+      ?>
+      <input type="hidden" name="returl" value="<?php echo htmlspecialchars($returl) ?>">
+      <input type="hidden" id="creado_por" name="create_by" value="<?php echo htmlspecialchars($create_by) ?>">
+      <input type="hidden" name="rep_id" value="<?php echo $rep_id ?>">
+      <input type="hidden" name="edit_type" value="<?php echo $edit_type ?>">
+
+      <?php
+
+      // ACÁ AGREGAMOS LOS CAMPOS PARA LA AUTORIZACION DE HS EXTRAS      
+
+      // 1. Lógica para recuperar valores existentes (si estamos editando)
+      // Si no existen, definimos valores por defecto
+      $req_auth_val = (isset($custom_fields['req_autorizacion'])) ? $custom_fields['req_autorizacion'] : 0;
+      $estado_auth_val = (isset($custom_fields['estado_auth'])) ? $custom_fields['estado_auth'] : 0;
+
+      //var_dump($row);exit;
+      // Si el objeto $row tiene los datos (proviene de la base de datos)
+      if (isset($row['req_autorizacion'])) {
+        $req_auth_val = $row['req_autorizacion'];
+      }
+      if (isset($row['estado_auth'])) {
+        $estado_auth_val = $row['estado_auth'];
+      }
+      //$req_auth_val = 1;
+      ?>
+
+      <h5 class="border-bottom pb-2">Gestión de Autorización</h5>
+
+      <input type="hidden" name="f_autorizar" id="f_autorizar" value="<?php echo ($req_auth_val); ?>"> </input>
+      <div class="mb-3 border p-3 rounded bg-light d-flex align-items-center gap-3 w-auto">
+
+        <div id="div_req_autorizacion" class="w-auto">
+          <?php echo (($req_auth_val == 1) ?
+            "<label class='fw-bold text-center text-danger w-100' for='f_autorizar'>Esta reserva requiere autorización de horas extras</label>"
+            :
+            "<label class='fw-bold text-center text-success w-100' for='f_autorizar'>Esta reserva NO requiere autorización de horas extras</label>");
+          ?>
+        </div>
+
+        <div id="div_estado_auth" <?php echo (($req_auth_val == 0) ? 'hidden' : '') ?>>
+          <label for="f_estado_auth" class="form-label">Estado actual:</label>
+          <select name="f_estado_autorizacion" id="f_estado_autorizacion" class="form-select w-auto">
+            <option value="0" <?php echo ($estado_auth_val == '0') ? 'selected="selected"' : ''; ?>>Enviar
+              solicitud</option>
+            <option value="1" <?php echo ($estado_auth_val == '1') ? 'selected="selected"' : ''; ?>>Enviado /
+              Pendiente</option>
+            <option value="2" <?php echo ($estado_auth_val == '2') ? 'selected="selected"' : ''; ?>>
+              Autorizado</option>
+            <option value="3" <?php echo ($estado_auth_val == '3') ? 'selected="selected"' : ''; ?>>
+              Rechazado</option>
+          </select>
+        </div>
+      </div>
+
+      <?php
+      // ACA FINALIZA LA LOGICA PARA LOS CAMPOS DE AUTORIZACIONES
+
+      // The original_room_id will only be set if this was an existing booking.
+      // If it is an existing booking then edit_entry_handler needs to know the
+      // original room id and the ical_uid and the ical_sequence, because it will
+      // have to keep the ical_uid and increment the ical_sequence for the room that
+      // contained the original booking.  If it's a new booking it will generate a new
+      // ical_uid and start the ical_sequence at 0.
+      if (isset($original_room_id)) {
+        echo "<input type=\"hidden\" name=\"original_room_id\" " .
+          "value=\"$original_room_id\">\n";
+        echo "<input type=\"hidden\" name=\"ical_uid\" value=\"" .
+          htmlspecialchars($ical_uid) . "\">\n";
+        echo "<input type=\"hidden\" name=\"ical_sequence\" value=\"" .
+          htmlspecialchars($ical_sequence) . "\">\n";
+        echo "<input type=\"hidden\" name=\"ical_recur_id\" value=\"" .
+          htmlspecialchars($ical_recur_id) . "\">\n";
+      }
+      if (isset($id) && !isset($copy)) {
+        echo "<input type=\"hidden\" name=\"id\" value=\"$id\">\n";
+      }
+
+
+      // Buttons
+      echo "<fieldset class=\"submit_buttons\">\n";
+      echo "<legend></legend>\n";
+      // The Back button
+      echo "<div id=\"edit_entry_submit_back\">\n";
+      echo "<input class=\"submit\" type=\"submit\" name=\"back_button\" value=\"" . get_vocab("back") . "\" formnovalidate>\n";
+
+      // Boton para abrir la ventana Modal de confirmacion y envío de email
+      // echo "<input type=\"button\" name=\"modal_btn\" value=\"Guardar\" id=\"ModalBtn\" data-toggle=\"modal\" data-target=\"#confirm-submit\" class=\"submit default_action\" />";
+      echo "<input type=\"button\" name=\"modal_btn\" value=\"Guardar\" id=\"ModalBtn\" class=\"submit default_action\" / >";
+
+      echo "</div>\n";
+
+      // divs to hold the results of the Ajax checking of the booking
+      echo "<div id=\"conflict_check\">\n";
+      echo "</div>\n";
+
+      echo "<div id=\"policy_check\">\n";
+      echo "</div>\n";
+
+      echo "</fieldset>";
+
+      // and a div to hold the dialog box which gives more details.    The dialog
+      // box contains a set of tabs.   And because we want the tabs to act as the
+      // dialog box we add an extra tab where we're going to put the dialog close
+      // button and then we hide the dialog itself
+      echo "<div id=\"check_results\" style=\"display: none\">\n";
+      echo "<div id=\"check_tabs\">\n";
+      echo "<ul id=\"details_tabs\">\n";
+      echo "<li><a href=\"#schedule_details\">" . get_vocab("schedule") . "</a></li>\n";
+      echo "<li><a href=\"#policy_details\">" . get_vocab("policy") . "</a></li>\n";
+      echo "<li id=\"ui-tab-dialog-close\"></li>\n";
+      echo "</ul>\n";
+      echo "<div id=\"schedule_details\"></div>\n";
+      echo "<div id=\"policy_details\"></div>\n";
+      echo "</div>\n";
+      echo "</div>\n";
+      ?>
+
+
+      <!-- Modal para confirmar datos y enviar email -->
+      <div id="confirmModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+          <div class="modal-body">
+            <h3>Está seguro de crear la reserva con los siguientes detalles?</h3>
+
+            <!--Mostramos los detalles de la reserva -->
+            <table class="modaltable">
+              <tr>
+                <th>Sala/s reservada/s</th>
+                <td id="salas"></td>
+              </tr>
+              <tr>
+                <th>Nombre de la reserva</th>
+                <td id="nombre"></td>
+              </tr>
+              <tr>
+                <th>Descripcion</th>
+                <td id="descripcion"></td>
+              </tr>
+              <tr>
+                <th>Fecha de comienzo</th>
+                <td id="comienzo_dia"></td>
+              </tr>
+              <tr>
+                <th>Hora</th>
+                <td id="hora_comienzo"></td>
+              </tr>
+              <tr>
+                <th>Fecha de finalización</th>
+                <td id="fin_dia"></td>
+              </tr>
+              <tr>
+                <th>Hora Fin</th>
+                <td id="hora_fin"></td>
+              </tr>
+              <tr>
+                <th>Contacto</th>
+                <td id="contacto"></td>
+              </tr>
+              <tr>
+                <th>Entidad</th>
+                <td id="entidad"></td>
+              </tr>
+              <tr>
+                <th>mayordomia</th>
+                <td id="mayordomia"></td>
+              </tr>
+              <tr>
+                <th>audiovisuales</th>
+                <td id="audiovisuales"></td>
+              </tr>
+            </table>
+            <form>
+              <div class="observaciones">
+                <label for="message-text" class="col-form-label">Observaciones:</label>
+                <input class="form-control" id="observaciones"></input>
+              </div>
+            </form>
+
+            <div class="modal-footer">
+              <input id="edit_entry_submit_save" class="btn btn-success" type="submit" name="save_button"
+                value="guardar">
+              <input id="edit_entry_submit_save_mail" class="btn btn-primary" type="submit" name="save_button"
+                value="guardar y enviar mail">
+              <span class="close">Cancel</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </form>
+
+  <script>
+    // Get the modal
+    var modal = document.getElementById("confirmModal");
+
+    // Get the button that opens the modal
+    var btn = document.getElementById("ModalBtn");
+
+    // Get the <span> element that closes the modal
+    var span = document.getElementsByClassName("close")[0];
+
+    // Get the <span> element that closes the modal
+    var btn_send_mail = document.getElementById("edit_entry_submit_save_mail");
+
+    // Get the <span> element that closes the modal
+    var btn_send = document.getElementById("edit_entry_submit_save");
+
+    // When the user clicks the button, open the modal 
+    btn.onclick = function () {
+
+      var select = document.getElementById('rooms');
+      var selected = [...select.selectedOptions]
+        .map(option => option.text);
+
+      var val_mayordomia = $.trim($("#f_mayordomia").val());
+      var val_audiovisuales = $.trim($("#f_audiovisuales").val());
+      modal.style.display = "block";
+      $('#salas').text(selected);
+      $('#nombre').text($('#name').val());
+      $('#descripcion').text($('#description').val());
+      $('#comienzo_dia').text($('#start_datepicker').val());
+      $('#hora_comienzo').text(convertir_seg_hr($('#start_seconds4').val()));
+      $('#fin_dia').text($('#end_datepicker').val());
+      $('#hora_fin').text(convertir_seg_hr($('#end_seconds4').val()));
+      $('#contacto').text($('#f_contact').val());
+      $('#entidad').text($('#f_contact_entity').val());
+      $('#mayordomia').text(val_mayordomia);
+      $('#audiovisuales').text(val_audiovisuales);
     }
 
-    // Buttons
-    echo "<fieldset class=\"submit_buttons\">\n";
-    echo "<legend></legend>\n";
-    // The Back button
-    echo "<div id=\"edit_entry_submit_back\">\n";
-    echo "<input class=\"submit\" type=\"submit\" name=\"back_button\" value=\"" . get_vocab("back") . "\" formnovalidate>\n";
-    echo "</div>\n";
-    
-    // The Submit button
-    echo "<div id=\"edit_entry_submit_save\">\n";
-    echo "<input class=\"submit default_action\" type=\"submit\" name=\"save_button\" value=\"" .
-      get_vocab("save") . "\">\n";
-    echo "</div>\n";
-    
-    // divs to hold the results of the Ajax checking of the booking
-    echo "<div id=\"conflict_check\">\n";
-    echo "</div>\n";
-    
-    echo "<div id=\"policy_check\">\n";
-    echo "</div>\n";
-    
-    echo "</fieldset>";
-    
-    // and a div to hold the dialog box which gives more details.    The dialog
-    // box contains a set of tabs.   And because we want the tabs to act as the
-    // dialog box we add an extra tab where we're going to put the dialog close
-    // button and then we hide the dialog itself
-    echo "<div id=\"check_results\" style=\"display: none\">\n";
-    echo "<div id=\"check_tabs\">\n";
-    echo "<ul id=\"details_tabs\">\n";
-    echo "<li><a href=\"#schedule_details\">" . get_vocab("schedule") . "</a></li>\n";
-    echo "<li><a href=\"#policy_details\">" . get_vocab("policy") . "</a></li>\n";
-    echo "<li id=\"ui-tab-dialog-close\"></li>\n";
-    echo "</ul>\n";
-    echo "<div id=\"schedule_details\"></div>\n";
-    echo "<div id=\"policy_details\"></div>\n";
-    echo "</div>\n";
-    echo "</div>\n";
-    ?>
-  </fieldset>
-</form>
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function () {
+      modal.style.display = "none";
+    }
 
-<?php output_trailer() ?>
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function (event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+    // When the user send the form
+    btn_send_mail.onclick = function () {
+      var sala = $('#salas').text();
+      var nombre_reserva = $('#nombre').text();
+      var descripcion_reserva = $('#descripcion').text();
+      var comienzo_reserva = $('#comienzo_dia').text();
+      var hora_comienzo_reserva = $('#hora_comienzo').text();
+      var fin_reserva = $('#fin_dia').text();
+      var hora_fin_reserva = $('#hora_fin').text();
+      var contacto_reserva = $('#contacto').text();
+      var contacto_telefono_reserva = $('#f_contact_phone').val();
+      var contacto_mail_reserva = $('#f_contact_mail').val();
+      var entidad_reserva = $('#entidad').text();
+      var req_mayordomia_reserva = $('#mayordomia').text();
+      var req_audiovisuales_reserva = $('#audiovisuales').text();
+      var reserva_creada_por = titleCase($('#creado_por').val());
+      var observaciones_reserva = $('#observaciones').val();
+      if (document.getElementById("confirmed").checked) {
+        var estado_reserva = "Reserva Confirmada"
+      } else {
+        var estado_reserva = "Provisoria: queda pendiente el envío de planilla firmada / autorización de horas extras/ comprobante de pago"
+      }
+      var cuerpoMensaje = `SOLICITUD DE RESERVA DE SALAS:
+
+Salas:
+  ${sala}
+
+Evento:
+  ${nombre_reserva}
+
+Descripción:
+  ${descripcion_reserva}
+
+Estado de confirmación: :
+  ${estado_reserva}
+
+Fecha Inicio:
+  ${comienzo_reserva} - ${hora_comienzo_reserva}
+
+Fecha Fin:
+  ${fin_reserva} - ${hora_fin_reserva}
+
+Contacto:
+  ${contacto_reserva}
+
+Teléfono contacto:
+  ${contacto_telefono_reserva}
+
+Mail contacto:
+  ${contacto_mail_reserva}
+
+Requerimientos de Mayordomía:
+  ${req_mayordomia_reserva}
+
+Requerimientos Audiovisuales:
+  ${req_audiovisuales_reserva}
+
+Reserva realizada por:
+  ${reserva_creada_por}
+
+OBSERVACIONES:
+
+  ${observaciones_reserva}
+`
+      if (req_audiovisuales_reserva != '') {
+        var receptores = encodeURIComponent(contacto_mail_reserva)
+          + '?cc=' + encodeURIComponent('dmauns@gmail.com')
+          + '&bcc=' + encodeURIComponent("culturayextension@uns.edu.ar")
+      } else {
+        var receptores = encodeURIComponent(contacto_mail_reserva)
+          + '?cc=' + encodeURIComponent('culturayextension@uns.edu.ar');
+      }
+      $(location).attr('href',
+        'mailto:' + receptores
+        + '&subject=' + encodeURIComponent("CyE UNS - Reserva de Espacios")
+        + "&body=" + encodeURIComponent(cuerpoMensaje)
+      );
+    }
+
+    function convertir_seg_hr(segundosP) {
+
+      const segundos = (Math.round(segundosP % 0x3C)).toString();
+      const horas = (Math.floor(segundosP / 0xE10)).toString();
+      var minutos = (Math.floor(segundosP / 0x3C) % 0x3C).toString();
+      if (minutos === '0') {
+        minutos = '00';
+      }
+      return horas + ':' + minutos;
+
+    }
+
+    function titleCase(str) {
+      var splitStr = str.toLowerCase().split(' ');
+      for (var i = 0; i < splitStr.length; i++) {
+        // You do not need to check if i is larger than splitStr length, as your for does that for you
+        // Assign it back to the array
+        splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
+      }
+      // Directly return the joined string
+      return splitStr.join(' ');
+    }
+  </script>
+
+
+  <?php output_trailer() ?>

@@ -287,8 +287,11 @@ else
 }
 
 
+if (!empty($mrbs_company_logo)) {
+	$logo_size = @getimagesize($mrbs_company_logo);
+	echo "<div class='certificado'><img src=\"$mrbs_company_logo\" " . $logo_size[3] . " alt=\"$mrbs_company\">\n</div>";
+}
 // Now that we know all the data we start drawing it
-
 echo "<h3" . (($keep_private && $is_private_field['entry.name']) ? " class=\"private\"" : "") . ">\n";
 echo ($keep_private && $is_private_field['entry.name']) ? "[" . get_vocab("private") . "]" : htmlspecialchars($row['name']);
 if (is_private_event($private) && $writeable) 
@@ -466,6 +469,7 @@ echo create_details_body($row, TRUE, $keep_private, $room_disabled);
     echo "</div>\n";
   }
   ?>
+  <div><a href="#" onclick="print()">Emitir comprobante</a></div>
   <div id="returl">
     <?php
     if (isset($HTTP_REFERER)) //remove the link if displayed from an email
@@ -476,6 +480,11 @@ echo create_details_body($row, TRUE, $keep_private, $room_disabled);
     }
     ?>
   </div>
+</div>
+<!-- Este es el texto del certificado -->
+<div class="certificado certificado_nota">
+	Esta reserva es provisoria. Para la confirmación deberá presentarse la planilla de Solicitud de reserva de salones disponible en <b>www.uns.edu.ar</b><br>
+	Cualquier consulta comunicarse al email <b>reservasalones@uns.edu.ar</b>
 </div>
 
 <?php

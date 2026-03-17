@@ -67,7 +67,7 @@ $anchor_hover_color_header      = $anchor_link_color_header;   // link color (ho
 $column_hidden_color            = $main_table_month_invalid_color;    // hidden days in the week and month views
 $calendar_hidden_color          = "#dae0e4";                          // hidden days in the mini-cals
 $row_even_color                 = "#ffffff";        // even rows in the day and week views
-$row_odd_color                  = "#f2f4f6";        // even rows in the day and week views
+$row_odd_color                  = "#EEEEEE";        // even rows in the day and week views
 $row_highlight_color            = "#ffc0da";        // used for highlighting a row
 
 $help_highlight_color           = "#ffe6f0";        // highlighting text on the help page
@@ -77,9 +77,10 @@ $multiple_control_color         = "#ffff22";        // background colour for the
 // These are the colours used for distinguishing between the dfferent types of bookings in the main
 // displays in the day, week and month views
 $color_types = array(
-	'A' => "#FF7070",
+    'A' => "#4CAF50",
     'B' => "#C2EAAD",
-    'C' => "#6495ED"
+    'C' => "#6495ED",
+	'W' => "#FF7070"
 /*
     'A' => "#ffff99",
     'B' => "#99cccc",

@@ -188,7 +188,7 @@ $all_day = preg_replace("/ /", "&nbsp;", get_vocab("all_day"));
 // This data will be retrieved day-by-day fo the whole month
 for ($day_num = 1; $day_num<=$days_in_month; $day_num++)
 {
-  $sql = "SELECT start_time, end_time, id, name, type,
+  $sql = "SELECT start_time, end_time, id, name, type,audiovisuales, estado_autorizacion
                  repeat_id, status, create_by
             FROM $tbl_entry
            WHERE room_id=$room
@@ -222,7 +222,7 @@ for ($day_num = 1; $day_num<=$days_in_month; $day_num++)
       $d[$day_num]["id"][] = $row['id'];
       $d[$day_num]["color"][] = $row['type'];
       $d[$day_num]["is_repeat"][] = !empty($row['repeat_id']);
-      
+      $d[$day_num]["has_audiovisuales"][] = ($row['audiovisuales']=="")?false:true;
       // Handle private events
       if (is_private_event($row['status'] & STATUS_PRIVATE)) 
       {
@@ -495,6 +495,7 @@ for ($cday = 1; $cday <= $days_in_month; $cday++)
         }
         echo "<a href=\"$booking_link\" title=\"$full_text\">";
         echo ($d[$cday]['is_repeat'][$i]) ? "<img class=\"repeat_symbol\" src=\"images/repeat.png\" alt=\"" . get_vocab("series") . "\" title=\"" . get_vocab("series") . "\" width=\"10\" height=\"10\">" : '';
+        echo ($d[$cday]['has_audiovisuales'][$i]) ? "<img class=\"av_symbol\" src=\"images/av_icon_org.png\" alt=\"" . get_vocab("Audiovisuales") . "\" title=\"" . get_vocab("Audiovisuales") . "\" width=\"10\" height=\"10\">" : '';
         echo "$display_text</a>\n";
         echo "</div>\n";
       }

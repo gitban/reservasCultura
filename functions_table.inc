@@ -45,7 +45,7 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
   // slots records the duration of the booking in number of time slots.
   // Used to calculate how high to make the block used for clipping
   // overflow descriptions.
-
+  
   // Fill in the map for this meeting. Start at the meeting start time,
   // or the day start time, whichever is later. End one slot before the
   // meeting end time (since the next slot is for meetings which start then),
@@ -75,7 +75,7 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
   
   $user = getUserName();
   if (is_private_event($row['status'] & STATUS_PRIVATE) &&
-         !getWritable($row['entry_create_by'], $user, $row['room_id']))
+  !getWritable($row['entry_create_by'], $user, $row['room_id']))
   {
     $row['status'] |= STATUS_PRIVATE;   // Set the private bit
     if ($is_private_field['entry.name'])
@@ -91,17 +91,17 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
   {
     $row['status'] &= ~STATUS_PRIVATE;  // Clear the private bit
   }
-
+  
   $is_multiday_start = ($row['start_time'] < $am7);
   $is_multiday_end = ($row['end_time'] > ($pm7 + $resolution));
-              
+  
   $start_t = max(round_t_down($row['start_time'], $resolution, $am7), $am7);
   $end_t = min(round_t_up($row['end_time'], $resolution, $am7) - $resolution, $pm7);
   // calculate the times used for indexing
   $time_start_t = date($format,$start_t);
   $time_end_t = date($format,$end_t);
   
-
+  
   for ($t = $start_t; $t <= $end_t; $t += $resolution)
   { 
     $time_t = date($format,$t);
@@ -112,10 +112,11 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
     {
       $n++;
     }
-    
     // fill in the id, type and start time
     $column[$time_t][$n]["id"] = $row['entry_id'];
     $column[$time_t][$n]["is_repeat"] = !empty($row['repeat_id']);
+    $column[$time_t][$n]["has_audiovisuales"] = ($row['audiovisuales']=="")?false:true;
+    $column[$time_t][$n]["estado_autorizacion"] = ($row['estado_autorizacion']=="")?false:true;
     $column[$time_t][$n]["is_multiday_start"] = $is_multiday_start;
     $column[$time_t][$n]["is_multiday_end"] = $is_multiday_end;
     $column[$time_t][$n]["status"] = $row['status'];
@@ -139,12 +140,11 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
       $column[$time_t][$n]["room_id"] = "";
     }
   } // end for
-  
-  
+   
   // Show the name of the booker, the description and the number of complete
   // slots in the first complete slot that the booking happens in, or at the 
   // start of the day if it started before today.
-
+  
   // Find the number of time slots that the booking occupies, and the index
   // of the first slot that this booking has entirely to itself
   $n_slots = intval(($end_t - $start_t)/$resolution) + 1;
@@ -233,7 +233,7 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
       $column[$time_start_t][0]["room_id"] = $column[date($format,$s)][$i]["room_id"];
     }
   }
- 
+  
   // now we've got all the information we can enter it in the first complete
   // slot for the booking (provided it's not a multiple booking slot)
   if (!isset($column[date($format,$first_slot)][1]["id"]))
@@ -244,7 +244,6 @@ function map_add_booking ($row, &$column, $am7, $pm7, $format)
     $column[date($format,$first_slot)][0]["room_id"] = $row['room_id']; 
     $column[date($format,$first_slot)][0]["slots"] = $n_slots;
   }
-
 } // end function map_add_booking()
 
 
@@ -280,66 +279,68 @@ function cell_html($cell, $query_strings)
   
   // $query_strings is an array containg the query strings (or partial query strings) to be
   // appended to the link used for the cell.    It is indexed as follows:
-  //    ['new_periods']   the string to be used for an empty cell if using periods
-  //    ['new_times']     the string to be used for an empty cell if using times
-  //    ['booking']       the string to be used for a full cell
+    //    ['new_periods']   the string to be used for an empty cell if using periods
+    //    ['new_times']     the string to be used for an empty cell if using times
+    //    ['booking']       the string to be used for a full cell
     
-  global $main_cell_height, $main_table_cell_border_width;
-  global $area, $year, $month, $timetohighlight;
-  global $enable_periods, $times_along_top, $show_plus_link;
-  global $approval_enabled, $confirmation_enabled;
-  
-  $html = '';
-  $user = getUserName();
-  
-  // if the time slot has got multiple bookings, then draw a mini-table
-  if(isset($cell[1]["id"]))
-  {
-    // Find out how many bookings there are (needed to calculate heights)
-    $n_bookings = 0;
-    while (isset($cell[$n_bookings]["id"]))
+    global $main_cell_height, $main_table_cell_border_width;
+    global $area, $year, $month, $timetohighlight;
+    global $enable_periods, $times_along_top, $show_plus_link;
+    global $approval_enabled, $confirmation_enabled;
+    
+    $html = '';
+    $user = getUserName();
+    
+    // if the time slot has got multiple bookings, then draw a mini-table
+    if(isset($cell[1]["id"]))
     {
-      $n_bookings++;
-    }
-    
-    // Make the class maximized by default so that if you don't have JavaScript then
-    // you can still see all the bookings.    If you have JavaScript it will overwrite
-    // the class and make it minimized.
-    $html .= "<td class=\"multiple_booking maximized\">\n";
-    
-    // First draw the mini table
-    $html .= "<div class=\"celldiv slots1 mini\">\n";
-    $html .= "<div class=\"multiple_control\">+</div>\n";
-    $html .= "<table>\n";
-    $html .= "<tbody>\n";
-    
-    $row_height = $main_cell_height - (($n_bookings-1) * $main_table_cell_border_width);   // subtract the borders (first row has no top border)
-    $row_height = $row_height/$n_bookings;  // split what's left between the bookings
-    $row_height = (int) ceil($row_height);  // round up, so that (a) there's no empty space at the bottom
-                                            // and (b) each stripe is at least 1 unit high
-    for ($n=0; $n<$n_bookings; $n++)
-    {
-      $id          = $cell[$n]["id"];
-      $is_repeat   = $cell[$n]["is_repeat"];
-      $is_multiday_start = $cell[$n]["is_multiday_start"];
-      $is_multiday_end   = $cell[$n]["is_multiday_end"];
-      $status      = $cell[$n]["status"];
-      $color       = $cell[$n]["color"];
-      $descr       = htmlspecialchars($cell[$n]["data"]);
-      $long_descr  = htmlspecialchars($cell[$n]["long_descr"]);
-      $class = $color;
-      if ($status & STATUS_PRIVATE)
+      // Find out how many bookings there are (needed to calculate heights)
+      $n_bookings = 0;
+      while (isset($cell[$n_bookings]["id"]))
       {
-        $class .= " private";
+        $n_bookings++;
       }
-      if ($approval_enabled && ($status & STATUS_AWAITING_APPROVAL))
+      
+      // Make the class maximized by default so that if you don't have JavaScript then
+      // you can still see all the bookings.    If you have JavaScript it will overwrite
+      // the class and make it minimized.
+      $html .= "<td class=\"multiple_booking maximized\">\n";
+      
+      // First draw the mini table
+      $html .= "<div class=\"celldiv slots1 mini\">\n";
+      $html .= "<div class=\"multiple_control\">+</div>\n";
+      $html .= "<table>\n";
+      $html .= "<tbody>\n";
+      
+      $row_height = $main_cell_height - (($n_bookings-1) * $main_table_cell_border_width);   // subtract the borders (first row has no top border)
+      $row_height = $row_height/$n_bookings;  // split what's left between the bookings
+      $row_height = (int) ceil($row_height);  // round up, so that (a) there's no empty space at the bottom
+      // and (b) each stripe is at least 1 unit high
+      for ($n=0; $n<$n_bookings; $n++)
       {
-        $class .= " awaiting_approval";
-      }
-      if ($confirmation_enabled && ($status & STATUS_TENTATIVE))
-      {
-        $class .= " tentative";
-      }
+        $id          = $cell[$n]["id"];
+        $has_audiovisuales = $cell[$n]["has_audiovisuales"];
+        $estado_autorizacion = $cell[0]["estado_autorizacion"];
+        $is_repeat   = $cell[$n]["is_repeat"];
+        $is_multiday_start = $cell[$n]["is_multiday_start"];
+        $is_multiday_end   = $cell[$n]["is_multiday_end"];
+        $status      = $cell[$n]["status"];
+        $color       = $cell[$n]["color"];
+        $descr       = htmlspecialchars($cell[$n]["data"]);
+        $long_descr  = htmlspecialchars($cell[$n]["long_descr"]);
+        $class = $color;
+        if ($status & STATUS_PRIVATE)
+        {
+          $class .= " private";
+        }
+        if ($approval_enabled && ($status & STATUS_AWAITING_APPROVAL))
+        {
+          $class .= " awaiting_approval";
+        }
+        if ($confirmation_enabled && ($status & STATUS_TENTATIVE))
+        {
+          $class .= " tentative";
+        }
       if ($is_multiday_start)
       {
         $class .= " multiday_start";
@@ -348,7 +349,7 @@ function cell_html($cell, $query_strings)
       {
         $class .= " multiday_end";
       }
-
+      
       $html .= "<tr>\n";
       $html .= "<td class=\"$class\"" .
                (($n==0) ? " style=\"border-top-width: 0\"" : "") .   // no border for first row
@@ -371,15 +372,17 @@ function cell_html($cell, $query_strings)
     $total_height = $n_bookings * $main_cell_height;
     $total_height += ($n_bookings - 1) * $main_table_cell_border_width;  // (first row has no top border)
     $html .= "<div class=\"multiple_control\" " .
-             "style =\"height: " . $total_height . "px; " .
-                      "min-height: " . $total_height . "px; " .
-                      "max-height: " . $total_height . "px; " .
+    "style =\"height: " . $total_height . "px; " .
+    "min-height: " . $total_height . "px; " .
+    "max-height: " . $total_height . "px; " .
              "\">-</div>\n";  
-    $html .= "<table>\n";
+             $html .= "<table>\n";
     $html .= "<tbody>\n";
-    for ($n=0; $n<$n_bookings; $n++)
-    {
+    
+    for ($n=0; $n<$n_bookings; $n++){
       $id          = $cell[$n]["id"];
+      $has_audiovisuales = $cell[$n]["has_audiovisuales"];
+      $estado_autorizacion = $cell[0]["estado_autorizacion"];
       $is_repeat   = $cell[$n]["is_repeat"];
       $is_multiday_start = $cell[$n]["is_multiday_start"];
       $is_multiday_end   = $cell[$n]["is_multiday_end"];
@@ -410,14 +413,16 @@ function cell_html($cell, $query_strings)
       }
       $html .= "<tr>\n";
       $html .= "<td class=\"$class\"" .
-               (($n==0) ? " style=\"border-top-width: 0\"" : "") .   // no border for first row
-               ">\n";
+      (($n==0) ? " style=\"border-top-width: 0\"" : "") .   // no border for first row
+      ">\n";
       $html .= "<div class=\"celldiv slots1\">\n";     // we want clipping of overflow
       $html .= "<a href=\"view_entry.php?id=$id&amp;". $query_strings['booking'] . "\" title=\"$long_descr\">";
       $html .= ($is_repeat) ? "<img class=\"repeat_symbol\" src=\"images/repeat.png\" alt=\"" . get_vocab("series") . "\" title=\"" . get_vocab("series") . "\" width=\"10\" height=\"10\">" : '';
+      $html .= ($has_audiovisuales) ? "<img class=\"av_symbol\" src=\"images/av_icon_org.png\" alt=\"" . get_vocab("audiovisuales") . "\" title=\"" . get_vocab("audiovisuales") . "\" width=\"10\" height=\"10\">" : '';
+      $html .= ($estado_autorizacion) ? "<img class=\"av_symbol $c\" src=\"images\autorizar".$estado_autorizacion.".svg\" alt=\"" . get_vocab("Autorizacion") . "\" title=\"" . get_vocab("Autorizacion") . "\" width=\"15\" height=\"15\" style='padding:2px; margin-top:2px;'\">" : '';
       $html .= "$descr</a>\n";
       $html .= "</div>\n";
-     
+      
       $html .= "</td>\n";
       $html .= "</tr>\n";
     }
@@ -432,8 +437,10 @@ function cell_html($cell, $query_strings)
   else
   {  
     if(isset($cell[0]["id"]))
-    {       
+    {  
       $id         = $cell[0]["id"];
+      $has_audiovisuales = $cell[0]["has_audiovisuales"];
+      $estado_autorizacion = $cell[0]["estado_autorizacion"];
       $is_repeat  = $cell[0]["is_repeat"];
       $is_multiday_start = $cell[0]["is_multiday_start"];
       $is_multiday_end   = $cell[0]["is_multiday_end"];
@@ -448,7 +455,7 @@ function cell_html($cell, $query_strings)
       unset($id);
       $slots = 1;
     }
-
+    
     // $c is the colour of the cell that the browser sees. Zebra stripes normally,
     // row_highlight if we're highlighting that line and the appropriate colour if
     // it is booked (determined by the type).
@@ -496,7 +503,7 @@ function cell_html($cell, $query_strings)
     // This would mean that it's the second or subsequent slot of a booking and so the
     // <td> for the first slot would have had a rowspan that extended the cell down for
     // the number of slots of the booking.
-
+    
     if (!(isset($id) && ($descr == ""))) 
     {
       $html .= tdcell($c, $slots);
@@ -506,8 +513,8 @@ function cell_html($cell, $query_strings)
       {
         $html .= "<div class=\"celldiv slots1\">\n";  // a bookable slot is only one unit high
         $html .= "<a href=\"edit_entry.php?" . 
-                 (($enable_periods) ? $query_strings['new_periods'] : $query_strings['new_times']) . 
-                 "\">\n";
+        (($enable_periods) ? $query_strings['new_periods'] : $query_strings['new_times']) . 
+        "\">\n";
         if ($show_plus_link)
         {
           $html .= "<img src=\"images/new.gif\" alt=\"New\" width=\"10\" height=\"10\">\n";
@@ -517,11 +524,14 @@ function cell_html($cell, $query_strings)
       }
       else                 // if it is booked then show the booking
       {
+        //var_dump($estado_autorizacion);exit;
         $html .= "<div data-id=\"$id\" class=\"celldiv slots" .
-                 (($times_along_top) ? "1" : $slots) .
-                 "\">\n";
+        (($times_along_top) ? "1" : $slots) .
+        "\">\n";
         $html .= "<a href=\"view_entry.php?id=$id&amp;". $query_strings['booking'] . "\" title=\"$long_descr\">";
         $html .= ($is_repeat) ? "<img class=\"repeat_symbol $c\" src=\"images/repeat.png\" alt=\"" . get_vocab("series") . "\" title=\"" . get_vocab("series") . "\" width=\"10\" height=\"10\">" : '';
+        $html .= ($has_audiovisuales) ? "<img class=\"av_symbol $c\" src=\"images/av_icon_org.png\" alt=\"" . get_vocab("Audiovisuales") . "\" title=\"" . get_vocab("Audiovisuales") . "\" width=\"15\" height=\"10\">" : '';
+        $html .= ($estado_autorizacion) ? "<img class=\"av_symbol $c\" src=\"images\autorizar".$estado_autorizacion.".svg\" alt=\"" . get_vocab("Autorizacion") . "\" title=\"" . get_vocab("Autorizacion") . "\" width=\"15\" height=\"15\" style='padding:2px; margin-top:2px;'\">" : '';
         $html .= "$descr</a>\n";
         $html .= "</div>\n";
       }
@@ -551,14 +561,14 @@ function time_cell_html($t, $time_t, $time_t_stripped, $slot_seconds, $url)
   {
     
     $html .= "<a href=\"$url\"  title=\""
-             . get_vocab("highlight_line") . "\">"
-             . $periods[$time_t_stripped] . "</a>\n";
+    . get_vocab("highlight_line") . "\">"
+    . $periods[$time_t_stripped] . "</a>\n";
   }
   else
   {
     $html .= "<a href=\"$url\" title=\""
-             . get_vocab("highlight_line") . "\">"
-             . utf8_strftime(hour_min_format(),$t) . "</a>\n";
+    . get_vocab("highlight_line") . "\">"
+    . utf8_strftime(hour_min_format(),$t) . "</a>\n";
   }
   $html .= "</div></td>\n";
   
@@ -616,16 +626,16 @@ function tdcell($colclass, $slots)
   $html .= "<td class=\"$colclass\"";
   if ($slots > 1)
   // No need to output more HTML than necessary
-  {
-    $html .= " " . (($times_along_top) ? "colspan" : "rowspan") . "=\"$slots\"";
-  }
-  if (isset($data))
-  {
-    $html .= " data-" . $data['name'] . "=\"" . $data['value'] . "\"";
-  }
-  $html .= ">\n";
-  
-  return $html;
+{
+  $html .= " " . (($times_along_top) ? "colspan" : "rowspan") . "=\"$slots\"";
+}
+if (isset($data))
+{
+  $html .= " data-" . $data['name'] . "=\"" . $data['value'] . "\"";
+}
+$html .= ">\n";
+
+return $html;
 }
 
 
@@ -676,7 +686,7 @@ function day_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight
     $eveningends = 12;
     $eveningends_minutes = count($periods) - 1;
   }
-
+  
   // Define the start and end of each day in a way which is not affected by
   // daylight saving...
   // dst_change:
@@ -685,21 +695,21 @@ function day_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight
   //  1 => leaving DST
   $dst_change = is_dst($month, $day, $year);
   $am7=mktime($morningstarts, $morningstarts_minutes, 0,
-              $month, $day, $year, is_dst($month,$day,$year,$morningstarts));
+  $month, $day, $year, is_dst($month,$day,$year,$morningstarts));
   $pm7=mktime($eveningends, $eveningends_minutes, 0,
-              $month, $day, $year, is_dst($month,$day,$year,$eveningends));
-            
+  $month, $day, $year, is_dst($month,$day,$year,$eveningends));
+  
   // We want to build an array containing all the data we want to show
   // and then spit it out. 
-
+  
   // Get all appointments for today in the area that we care about.  We
   // only get the data for enabled rooms.  (If the whole area is disabled
   // then the main table won't get displayed anyway).
-
+  
   // Note: The predicate clause 'start_time <= ...' is an equivalent but simpler
   // form of the original which had 3 BETWEEN parts. It selects all entries which
   // occur on or cross the current day.
-  $sql = "SELECT R.id AS room_id, start_time, end_time, name, repeat_id,
+  $sql = "SELECT R.id AS room_id, start_time, end_time, name, repeat_id, audiovisuales, estado_autorizacion,
                  E.id AS entry_id, type,
                  E.description AS entry_description, status,
                  E.create_by AS entry_create_by
@@ -710,21 +720,21 @@ function day_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight
              AND start_time <= $pm7 AND end_time > $am7
         ORDER BY start_time";   // necessary so that multiple bookings appear in the right order
 
-  $res = sql_query($sql);
-  if (! $res)
-  {
-    trigger_error(sql_error(), E_USER_WARNING);
-    fatal_error(FALSE, get_vocab("fatal_db_error"));
-  }
+$res = sql_query($sql);
+if (! $res)
+{
+  trigger_error(sql_error(), E_USER_WARNING);
+  fatal_error(FALSE, get_vocab("fatal_db_error"));
+}
 
-  $today = array();
+$today = array();
 
-  for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)
-  {
-    // Each row we've got here is an appointment.
-    //  row['room_id'] = Room ID
-    //  row['start_time'] = start time
-    //  row['end_time'] = end time
+for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)
+{
+  // Each row we've got here is an appointment.
+  //  row['room_id'] = Room ID
+  //  row['start_time'] = start time
+  //  row['end_time'] = end time
     //  row['name'] = short description
     //  row['repeat_id'] = repeat type
     //  row['entry_id'] = id of this booking
@@ -732,11 +742,11 @@ function day_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight
     //  row['entry_description'] = description
     //  row['entry_create_by'] = Creator/owner of entry
     //  row['status'] = Status code of the entry
-  
+    
     map_add_booking($row, $today[$row['room_id']][$day], $am7, $pm7, $format);
-
+    
   }
-
+  
   // We need to know what all the rooms are called, so we can show them all.
   // Pull the data from the db and store it. Convienently we can print the room
   // headings and capacities at the same time
@@ -1062,7 +1072,7 @@ function week_table_innerhtml($day, $month, $year, $room, $area, $timetohighligh
 
   for ($j = 0; $j<=($num_of_days-1) ; $j++)
   {
-    $sql = "SELECT room_id, start_time, end_time, type, name, status, repeat_id,
+    $sql = "SELECT room_id, start_time, end_time, type, name, status, repeat_id,audiovisuales, estado_autorizacion
                    id AS entry_id, description AS entry_description,
                    create_by AS entry_create_by
               FROM $tbl_entry

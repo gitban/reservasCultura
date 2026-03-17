@@ -1262,7 +1262,7 @@ if ($output_form)
           $buttons[OUTPUT_ICAL] = "ical";
         }
         generate_radio_group(get_vocab("format"), 'output_format', $output_format, $buttons);
-        echo "<h1>ACA té</h1></div>\n";
+        echo "</div>\n";
         ?>
 
       

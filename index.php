@@ -22,6 +22,14 @@ switch ($default_view)
     $redirect_str = "day.php";
 }
 
+// VERIFICO LA COPIA DE SEGURIDAD
+	$actual = date("Ymd");
+	$lastbackup = file_get_contents("lastbackup.txt");
+	if ($lastbackup !== $actual) {
+		include("backup_send.php");
+		file_put_contents("lastbackup.txt",$actual);
+	}
+
 $redirect_str .= "?year=$year&month=$month&day=$day&area=$area&room=$room";
 
 header("Location: $redirect_str");
