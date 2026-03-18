@@ -143,5 +143,8 @@ $smtp_settings['password'] = 'atomo22';       // Password (if using authenticati
 $mail_settings['from'] = 'lacoqui@uns.edu.ar';
 $mail_settings['recipients'] = 'lacoqui@uns.edu.ar;reservasalones@uns.edu.ar';
 $mail_settings['debug'] = FALSE;
+
+//silenciar Warnings por versiones viejas de codigo
+error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED);
 ?>
 

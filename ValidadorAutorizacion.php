@@ -39,15 +39,14 @@ class VerificadorAutorizacion {
                 break;
                 
             case 6: // RONDEAU
+                
                 // Mayordomía: L a V 7:00 a 20:00
-
-                echo('RONDEAU');
                 $res['h_mayordomia'] = $this->calcularHorasExtras(1, 7, 0.0, 23.59);
                 
                 // Seguridad: L a S 6:00 a 14:00
                 $res['h_vigilancia'] = $this->calcularHorasExtras(1, 5, 7.0, 19.0);
                 
-                // Limpieza (Borlenghi): L a V 6:00 a 20:00
+                // Limpieza (Borlenghi): L a V 7:00 a 14:00
                 $res['h_limpieza'] = $this->calcularHorasExtras(1, 5, 7.0, 14.0);
                 break;
                 

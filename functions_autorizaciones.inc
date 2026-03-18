@@ -10,7 +10,10 @@ function table_autorizaciones()
   $sql = "SELECT *
 FROM reservas_autorizaciones AS T1
 INNER JOIN reservas_entry AS T2
-ON T1.reserva_id = T2.id;";
+ON T1.reserva_id = T2.id
+INNER JOIN reservas_room AS T3
+ON T2.room_id = T3.id;
+";
 
 
   $res = sql_query($sql);
@@ -43,18 +46,18 @@ ON T1.reserva_id = T2.id;";
           </tr>
         </thead>
         <tbody>
-          <?php for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++):
+          <?php for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)://var_dump($row);
             ?>
             <tr>
-              
+
               <td class="fw-bold text-center"><?php echo $row['id']; ?></td>
               <td class="small"><?php echo $row['inicio_reserva']; ?></td>
               <td><span class="badge bg-info text-dark"><?php echo $row['tipo_solicitante']; ?></span></td>
               <td><?php echo $row['legajo']; ?></td>
               <td><?php echo $row['apellido_nombre']; ?></td>
-              <td><?php echo $row['entidad']; ?></td>
-              <td><?php echo $row['nombre_evento']; ?></td>
-              <td><?php echo $row['sala_nombre']; ?></td>
+              <td><?php echo $row['contact_entity']; ?></td>
+              <td><?php echo $row['name']; ?></td>
+              <td><?php echo $row['room_name']; ?></td>
               <td class="text-center"><?php echo ($row['vigilancia'] ? 'SI (' . $row['horas_vigilancia'] . 'hs)' : 'NO'); ?>
               </td>
               <td class="text-center"><?php echo ($row['limpieza'] ? 'SI (' . $row['horas_limpieza'] . 'hs)' : 'NO'); ?>
@@ -90,7 +93,8 @@ ON T1.reserva_id = T2.id;";
           <h5 class="modal-title" id="modalGestionLabel">
             Gestionar Autorización N°: <span id="modal-id-title"></span>
           </h5>
-          <button type="button" class="btn-close btn-close-white btn-cerrar" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close btn-close-white btn-cerrar" data-bs-dismiss="modal"
+            aria-label="Close"></button>
         </div>
 
         <!-- Formulario que procesará el cambio -->
@@ -172,28 +176,28 @@ ON T1.reserva_id = T2.id;";
         $("#input-estado").val($(this).data("estado"));
       });
 
-        // Envío AJAX
-        $('#formActualizar').on('submit', function (e) {
-          e.preventDefault();
-          $.ajax({
-            url: 'actualizar_estado.php',
-            type: 'POST',
-            data: $(this).serialize(),
-            success: function (response) {
-              if (response.trim() === "success") {
-                location.reload();
-              } else {
-                alert("Error: " + response);
-              }
+      // Envío AJAX
+      $('#formActualizar').on('submit', function (e) {
+        e.preventDefault();
+        $.ajax({
+          url: 'actualizar_estado.php',
+          type: 'POST',
+          data: $(this).serialize(),
+          success: function (response) {
+            if (response.trim() === "success") {
+              location.reload();
+            } else {
+              alert("Error: " + response);
             }
-          });
+          }
+        });
       });
       // Cerrar modal con el botón
-     // btnClose.addEventListener("click", () => modal.close());
+      // btnClose.addEventListener("click", () => modal.close());
       $(document).on("click", ".btn-cerrar", function (e) {
-         modal.close();
-           });
-      
+        modal.close();
+      });
+
       // Cerrar al hacer clic fuera (en el backdrop)
       modal.addEventListener("click", (e) => {
         if (e.target === modal) modal.close();
@@ -208,11 +212,11 @@ ON T1.reserva_id = T2.id;";
 /**
  * Inserta registros calculando horas excedentes según el horario de cobertura
  */
-function insertar_autorizacion_individual($booking)
+function insertar_autorizacion_individual($booking, $id)
 {
   $organizador = ['U' => 'UNS', 'S' => 'Secretaría', 'O' => 'Otro'];
   global $tbl_room;
-  
+
   // 2. Instanciar el verificador para obtener las horas excedentes
   // Asegúrate de que el archivo de la clase esté incluido
   $verificador = new VerificadorAutorizacion($booking);
@@ -225,22 +229,20 @@ function insertar_autorizacion_individual($booking)
   $res_sala = sql_query("SELECT room_name FROM $tbl_room WHERE id=$room_id LIMIT 1");
 
   $sala_nombre = "Sala ID: " . $room_id; // Valor por defecto
-  
+
   if ($res_sala) {
     if (sql_count($res_sala) > 0) {
       $row_sala = sql_row($res_sala, 0);
       $sala_nombre = $row_sala[0];
-      }
-      // Liberamos el recurso para evitar otros warnings
-      if (function_exists('mysql_free_result')) {
-        @mysql_free_result($res_sala);
-        }
-        }
-        //formateo la fecha para insertarla en la tabla con el formato correcto
-  $fecha_formateada = date("Y-m-d H:i:s", $booking['start_time']);
-  
+    }
+    // Liberamos el recurso para evitar otros warnings
+    if (function_exists('mysql_free_result')) {
+      @mysql_free_result($res_sala);
+    }
+  }
+
   // Preparar el SQL con las horas calculadas
-  $sql = "INSERT INTO reservas_autorizaciones (
+  $sql = "REPLACE INTO reservas_autorizaciones (
                     reserva_id,
                     tipo_solicitante, 
                     legajo, 
@@ -252,28 +254,27 @@ function insertar_autorizacion_individual($booking)
                     mayordomia,
                     horas_mayordomia 
                 ) VALUES (
-                    135079,
+                    $id,
                     1,
                     12345,
                     '" . sql_escape($booking['create_by']) . "',
                     " . (int) $datos['vigilancia'] . ",
                     " . number_format((float) $datos['h_vigilancia'], 2, '.', '') . ",
-                    " . (int) $datos['mayordomia'] . ",
-                    " . number_format((float) $datos['h_mayordomia'], 2, '.', '') . ",
                     " . (int) $datos['limpieza'] . ",
-                    " . number_format((float) $datos['h_limpieza'], 2, '.', '') . "
+                    " . number_format((float) $datos['h_limpieza'], 2, '.', '') . ",
+                    " . (int) $datos['mayordomia'] . ",
+                    " . number_format((float) $datos['h_mayordomia'], 2, '.', '') . "
                     )";
-                    sql_command($sql);
-                    
-                    $res = sql_query($sql);
-                    var_dump($res);
-                    var_dump($booking['autorizar']);
+  sql_command($sql);
+
+  $res = sql_query($sql);
+
   if ($res === false) {
     // Si la función devuelve -1, hubo un error en la base de datos
     echo "<h3>Error en la inserción de autorizaciones:</h3>";
     echo "<strong>SQL ejecutado:</strong> " . htmlspecialchars($sql) . "<br>";
     echo "<strong>Error de la DB:</strong> " . sql_error() . "<br>";
-    exit; // Detenemos la ejecución para poder leer el error
+    //exit; // Detenemos la ejecución para poder leer el error
 
   }
 }

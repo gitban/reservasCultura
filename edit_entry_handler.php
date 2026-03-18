@@ -556,29 +556,29 @@ foreach ($rooms as $room_id) {
 $just_check = $ajax && function_exists('json_encode') && !$commit;
 $this_id = (isset($id)) ? $id : NULL;
 
-///exit;
-//var_dump($bookings);exit;
 $result = mrbsMakeBookings($bookings, $this_id, $just_check, $skip, $original_room_id, $need_to_send_mail, $edit_type);
 
 if ($result['valid_booking'] && !$just_check) {
 
   // Iteramos sobre las reservas creadas/editadas para insertar sus autorizaciones
-  foreach ($bookings as $booking) {
-    //usado para determinar si se requiere qutorización de horas extras
-    $booking['area_id'] = $area;
-    $autorizacion = new VerificadorAutorizacion($booking);
-    $datos = $autorizacion->determinarNecesidades();
-    $booking['autorizar'] = $datos['req_auth'];
-    $booking['estado_autorizacion'] = 0;
-    // Si se requiere autorizacion insertamos un registro en la tabla reservas_autorizaciones
-    ($booking['autorizar']) ? insertar_autorizacion_individual($booking) : '';
-
-    // var_dump($bookings);
-    // exit;
+  foreach ($result['new_details'] as $i => $id_generado) {
+    $id_generado = $id_generado['id'];
+    if (isset($bookings[$i])) {
+      // Le "inyectamos" el ID real de la base de datos al array de esa reserva
+      $bookings['id_reserva_real'] = $id_generado;
+      //usado para determinar si se requiere autorización de horas extras
+      $booking['area_id'] = $area;
+      $autorizacion = new VerificadorAutorizacion($booking);
+      $datos = $autorizacion->determinarNecesidades();
+      $booking['autorizar'] = $datos['req_auth'];
+      $booking['estado_autorizacion'] = 0;
+      // Si se requiere autorizacion insertamos un registro en la tabla reservas_autorizaciones
+      ($booking['autorizar']) ? insertar_autorizacion_individual($booking, $id_generado) : '';
+    }
   }
 }
 
-// If we weren't just checking and this was a succesful booking and
+// If we weren't just checking and this was a succesfuºl booking and
 // we were editing an existing booking, then delete the old booking
 if (!$just_check && $result['valid_booking'] && isset($id)) {
   mrbsDelEntry($user, $id, ($edit_type == "series"), 1);
