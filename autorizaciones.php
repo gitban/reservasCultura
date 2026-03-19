@@ -1,5 +1,4 @@
-﻿<?php 
-
+<?php 
 require "defaultincludes.inc";
 require_once "mincals.inc";
 require_once "functions_autorizaciones.inc";

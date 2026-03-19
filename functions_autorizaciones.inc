@@ -2,11 +2,10 @@
 
 require_once "mrbs_sql.inc";
 require_once "ValidadorAutorizacion.php";
-
+require_once "GestorAutorizacion.php";
 function table_autorizaciones()
 {
   // Consulta simple: DataTables se encargará de filtrar y paginar en el cliente
-  //$sql = "SELECT * FROM `reservas_autorizaciones` ORDER BY id DESC";
   $sql = "SELECT *
 FROM reservas_autorizaciones AS T1
 INNER JOIN reservas_entry AS T2
@@ -14,7 +13,7 @@ ON T1.reserva_id = T2.id
 INNER JOIN reservas_room AS T3
 ON T2.room_id = T3.id;
 ";
-
+  $estados = [0 => 'RECIBIDO', 1 => 'APROBADO', 2 => 'RECHAZADO'];
 
   $res = sql_query($sql);
   ?>
@@ -46,8 +45,7 @@ ON T2.room_id = T3.id;
           </tr>
         </thead>
         <tbody>
-          <?php for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++)://var_dump($row);
-            ?>
+          <?php for ($i = 0; ($row = sql_row_keyed($res, $i)); $i++):?>
             <tr>
 
               <td class="fw-bold text-center"><?php echo $row['id']; ?></td>
@@ -64,16 +62,30 @@ ON T2.room_id = T3.id;
               </td>
               <td class="text-center"><?php echo ($row['mayordomia'] ? 'SI (' . $row['horas_mayordomia'] . 'hs)' : 'NO'); ?>
               </td>
-              <td><small><?php echo $row['email_celular']; ?></small></td>
-              <td><small><?php echo $row['email_estado']; ?></small></td>
+              <td><small><?php echo $row['email'] . "-" . $row['telefono']; ?></small></td>
+              <td 
+              <?php switch ($row['estado_autorizacion']){
+              case 1:
+               echo 'style="background-color:#b3ffb3"';
+               break;
+              case 2:
+               echo 'style="background-color:#ffa6a6"';
+               break;
+                default:
+                break;
+               }
+              ?>
+              >
+              <small><?php echo $estados[$row['estado_autorizacion']]; ?></small></td>
               <td>
                 <button id="openModal" type="button" class="btn btn-primary btn-sm btn-editar" data-bs-toggle="modal"
                   data-bs-target="#modalGestion" data-id="<?php echo $row['id']; ?>"
+                  data-reserva="<?php echo htmlspecialchars($row['reserva_id']); ?>"
                   data-nombre="<?php echo htmlspecialchars($row['apellido_nombre']); ?>"
                   data-evento="<?php echo htmlspecialchars($row['nombre_evento']); ?>"
                   data-sala="<?php echo htmlspecialchars($row['sala_nombre']); ?>"
                   data-estado="<?php echo $row['estado']; ?>">
-                  Gestionar
+                  Modificar Estado
                 </button>
               </td>
             </tr>
@@ -82,7 +94,11 @@ ON T2.room_id = T3.id;
       </table>
     </div>
   </div>
-
+  <?php
+  // Obtenemos el estado actual de la base de datos
+  $estado_actual = (int) $row['estado_autorizacion'];
+  $bloqueado = ($estado_actual !== 0); // Si no es 'Recibido', se bloquea
+  ?>
   <!-- Modal de Gestión de Autorizaciones -->
   <dialog id="myModal" class="modalAutorizar">
 
@@ -95,14 +111,14 @@ ON T2.room_id = T3.id;
           </h5>
           <button type="button" class="btn-close btn-close-white btn-cerrar" data-bs-dismiss="modal"
             aria-label="Close"></button>
-        </div>
 
+        </div>
         <!-- Formulario que procesará el cambio -->
-        <form id="formActualizar">
+
+        <form class="form-autorizacion">
           <div class="modal-body">
             <!-- Campo oculto para enviar el ID al PHP -->
-            <input type="hidden" id="input-id" name="id">
-
+            <input type="hidden" id="reserva_id_modal" />
             <div class="mb-3">
               <p class="mt-2 mb-1 text-muted small">Solicitante:</p>
               <p id="modal-nombre" class="fw-bold"></p>
@@ -123,17 +139,25 @@ ON T2.room_id = T3.id;
             <!-- Selector de Estado -->
             <div class="mb-3">
               <label for="input-estado" class="form-label fw-bold">Nuevo Estado:</label>
-              <select class="form-select border-primary" id="input-estado" name="estado">
-                <option value="RECIBIDO">RECIBIDO</option>
-                <option value="APROBADO">APROBADO</option>
-                <option value="RECHAZADO">RECHAZADO</option>
+              <select class="form-select border-primary" name="nuevo_estado" <?php echo ($bloqueado) ? 'disabled' : ''; ?>
+                id="nuevo_estado_modal">
+                <option value="0" <?php echo ($estado_actual == 0) ? 'selected' : ''; ?>> 📩 Recibido</option>
+                <option value="1" <?php echo ($estado_actual == 1) ? 'selected' : ''; ?>> ✅ Autorizado</option>
+                <option value="2" <?php echo ($estado_actual == 2) ? 'selected' : ''; ?>> ❌ Rechazado</option>
               </select>
             </div>
           </div>
 
           <div class="modal-footer bg-light">
+            <?php if (!$bloqueado): ?>
+              <button type="button" class="btn btn-success px-4" onclick="enviarCambioEstado()">Confirmar Cambio</button>
+            <?php else: ?>
+              <div class="alerta-finalizado">
+                <strong>Trámite Finalizado:</strong>
+                <?php echo ($estado_actual == 1) ? "La reserva está autorizada." : "La reserva ha sido rechazada."; ?>
+              </div>
+            <?php endif; ?>
             <button type="button" class="btn btn-secondary btn-cerrar" data-bs-dismiss="myModal">Cancelar</button>
-            <button type="submit" class="btn btn-success px-4">Guardar Cambios</button>
           </div>
         </form>
       </div>
@@ -169,29 +193,14 @@ ON T2.room_id = T3.id;
         e.preventDefault();
 
         $("#modal-id-title").text($(this).data("id"));
-        $("#input-id").val($(this).data("id"));
+        $("#reserva_id_modal").val($(this).data("reserva"));
         $("#modal-nombre").text($(this).data("nombre"));
         $("#modal-evento").text($(this).data("evento"));
         $("#modal-sala").text($(this).data("sala"));
         $("#input-estado").val($(this).data("estado"));
       });
 
-      // Envío AJAX
-      $('#formActualizar').on('submit', function (e) {
-        e.preventDefault();
-        $.ajax({
-          url: 'actualizar_estado.php',
-          type: 'POST',
-          data: $(this).serialize(),
-          success: function (response) {
-            if (response.trim() === "success") {
-              location.reload();
-            } else {
-              alert("Error: " + response);
-            }
-          }
-        });
-      });
+
       // Cerrar modal con el botón
       // btnClose.addEventListener("click", () => modal.close());
       $(document).on("click", ".btn-cerrar", function (e) {
@@ -203,6 +212,34 @@ ON T2.room_id = T3.id;
         if (e.target === modal) modal.close();
       });
     });
+
+    function enviarCambioEstado() {
+      const id = document.getElementById('reserva_id_modal').value;
+      const estado = document.getElementById('nuevo_estado_modal').value;
+      if (!confirm('¿Está seguro? Esta acción es irreversible una vez autorizada o rechazada.')) return;
+      
+      // Usamos FormData para enviar los datos de forma limpia
+      const datos = new FormData();
+      datos.append('id_reserva', id);
+      datos.append('nuevo_estado', estado);
+      fetch('procesar_autorizacion.php', {
+        method: 'POST',
+        body: datos
+      })
+        .then(response => response.json()) // Esperamos una respuesta JSON del PHP
+        .then(data => {
+          if (data.status === 'success') {
+            alert(data.msg);
+            location.reload(); // Recargamos para ver los cambios y el bloqueo
+          } else {
+            alert('Error: ' + data.msg);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Ocurrió un error al procesar la solicitud.');
+        });
+    }
   </script>
   <?php
 

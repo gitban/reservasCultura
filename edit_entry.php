@@ -1300,7 +1300,7 @@ if ($res) {
       if (isset($row['estado_auth'])) {
         $estado_auth_val = $row['estado_auth'];
       }
-      //$req_auth_val = 1;
+      var_dump($row);
       ?>
 
       <h5 class="border-bottom pb-2">Gestión de Autorización</h5>
