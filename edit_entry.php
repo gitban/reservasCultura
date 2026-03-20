@@ -329,26 +329,26 @@ function create_field_entry_areas($disabled = FALSE)
         }
         // add entries based on area selected
         switch (area) {
-                                                          <?php
-                                                          foreach ($areas as $a) {
-                                                            print "case \"" . $a['id'] . "\":\n";
-                                                            // get rooms for this area
-                                                            $i = 0;
-                                                            foreach ($rooms as $r) {
-                                                              if ($r['area_id'] == $a['id']) {
-                                                                print "roomsObj.options[$i] = new Option(\"" . escape_js($r['room_name']) . "\"," . $r['id'] . ");\n";
-                                                                $i++;
+                                                              <?php
+                                                              foreach ($areas as $a) {
+                                                                print "case \"" . $a['id'] . "\":\n";
+                                                                // get rooms for this area
+                                                                $i = 0;
+                                                                foreach ($rooms as $r) {
+                                                                  if ($r['area_id'] == $a['id']) {
+                                                                    print "roomsObj.options[$i] = new Option(\"" . escape_js($r['room_name']) . "\"," . $r['id'] . ");\n";
+                                                                    $i++;
+                                                                  }
+                                                                }
+                                                                // select the first entry by default to ensure
+                                                                // that one room is selected to begin with
+                                                                if ($i > 0)  // but only do this if there is a room
+                                                                {
+                                                                  print "roomsObj.options[0].selected = true;\n";
+                                                                }
+                                                                print "break;\n";
                                                               }
-                                                            }
-                                                            // select the first entry by default to ensure
-                                                            // that one room is selected to begin with
-                                                            if ($i > 0)  // but only do this if there is a room
-                                                            {
-                                                              print "roomsObj.options[0].selected = true;\n";
-                                                            }
-                                                            print "break;\n";
-                                                          }
-                                                          ?>
+                                                              ?>
       } //switch
 
       <?php
@@ -400,7 +400,7 @@ function create_field_entry_areas($disabled = FALSE)
       currentArea = area;
       prevStartValue = undefined;
       adjustSlotSelectors(formObj, oldArea, oldAreaStartValue, oldAreaEndValue);
-                                                      }
+                                                          }
 
       // Create area selector, only if we have Javascript
       var div_areas = document.getElementById('div_areas');
@@ -575,8 +575,6 @@ function create_field_entry_privacy_status($disabled = FALSE)
     echo "</div>\n";
   }
 }
-
-
 function create_field_entry_custom_field($field, $key, $disabled = FALSE)
 {
   global $custom_fields, $tbl_entry, $select_options;
@@ -1286,13 +1284,12 @@ if ($res) {
       <?php
 
       // ACÁ AGREGAMOS LOS CAMPOS PARA LA AUTORIZACION DE HS EXTRAS      
-
+      
       // 1. Lógica para recuperar valores existentes (si estamos editando)
       // Si no existen, definimos valores por defecto
       $req_auth_val = (isset($custom_fields['req_autorizacion'])) ? $custom_fields['req_autorizacion'] : 0;
       $estado_auth_val = (isset($custom_fields['estado_auth'])) ? $custom_fields['estado_auth'] : 0;
 
-      //var_dump($row);exit;
       // Si el objeto $row tiene los datos (proviene de la base de datos)
       if (isset($row['req_autorizacion'])) {
         $req_auth_val = $row['req_autorizacion'];
@@ -1300,7 +1297,6 @@ if ($res) {
       if (isset($row['estado_auth'])) {
         $estado_auth_val = $row['estado_auth'];
       }
-      var_dump($row);
       ?>
 
       <h5 class="border-bottom pb-2">Gestión de Autorización</h5>
@@ -1333,7 +1329,7 @@ if ($res) {
 
       <?php
       // ACA FINALIZA LA LOGICA PARA LOS CAMPOS DE AUTORIZACIONES
-
+      
       // The original_room_id will only be set if this was an existing booking.
       // If it is an existing booking then edit_entry_handler needs to know the
       // original room id and the ical_uid and the ical_sequence, because it will
